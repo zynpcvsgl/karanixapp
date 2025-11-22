@@ -4,9 +4,10 @@ const { v4: uuidv4 } = require('uuid');
 const Passenger = require('../models/Passenger');
 const Operation = require('../models/Operation');
 const EventLog = require('../models/EventLog');
-const { optionalAuth } = require('../middleware/auth');
+// GÜNCELLEME 1: authMiddleware içeri aktarıldı
+const { optionalAuth, authMiddleware } = require('../middleware/auth');
 
-// GET /api/pax - Get all passengers (with optional filters)
+// GET /api/pax - Yolcu listesi (Opsiyonel Auth)
 router.get('/', optionalAuth, async (req, res) => {
   try {
     const { operation_id, status } = req.query;
@@ -28,7 +29,7 @@ router.get('/', optionalAuth, async (req, res) => {
   }
 });
 
-// GET /api/pax/:id - Get passenger details
+// GET /api/pax/:id - Yolcu detayı
 router.get('/:id', optionalAuth, async (req, res) => {
   try {
     const passenger = await Passenger.findOne({ pax_id: req.params.id });
@@ -47,12 +48,13 @@ router.get('/:id', optionalAuth, async (req, res) => {
   }
 });
 
-// POST /api/pax/:id/checkin - Check-in passenger
-router.post('/:id/checkin', async (req, res) => {
+// POST /api/pax/:id/checkin - Check-in işlemi
+// GÜNCELLEME 2: authMiddleware eklendi. Artık sadece token'ı olan (Rehber/Driver) yapabilir.
+router.post('/:id/checkin', authMiddleware, async (req, res) => {
   try {
     const { method, gps, photoUrl, event_id } = req.body;
     
-    // Check for idempotency using event_id
+    // 1. Idempotency Kontrolü (Çift işlem önleme)
     if (event_id) {
       const existingEvent = await EventLog.findOne({ event_id });
       if (existingEvent) {
@@ -64,7 +66,7 @@ router.post('/:id/checkin', async (req, res) => {
       }
     }
     
-    // Find passenger
+    // 2. Yolcuyu Bul
     const passenger = await Passenger.findOne({ pax_id: req.params.id });
     
     if (!passenger) {
@@ -75,29 +77,26 @@ router.post('/:id/checkin', async (req, res) => {
       return res.status(400).json({ error: 'Passenger already checked in' });
     }
     
-    // Update passenger status
+    // 3. Durum Güncelleme
     passenger.status = 'checked_in';
     passenger.checked_in_at = new Date();
     passenger.checkin_method = method || 'manual';
+    passenger.last_checkin_event_id = event_id || uuidv4(); // Modeldeki alana da yazalım (Best practice)
     
-    if (gps) {
-      passenger.checkin_gps = gps;
-    }
-    
-    if (photoUrl) {
-      passenger.checkin_photo_url = photoUrl;
-    }
+    if (gps) passenger.checkin_gps = gps;
+    if (photoUrl) passenger.checkin_photo_url = photoUrl;
     
     await passenger.save();
     
-    // Update operation checked_in_count
-    const operation = await Operation.findOne({ id: passenger.operation_id });
+    // 4. Operasyon Sayacını Güncelleme
+    const operation = await Operation.findOne({ id: passenger.operation_id }); // Modelde id:String ise
+    // Eğer modelde _id kullanıyorsan: Operation.findById(passenger.operation_id)
     
     if (operation) {
       operation.checked_in_count += 1;
       await operation.save();
       
-      // Create event log
+      // 5. Event Log Oluşturma
       const eventLogData = {
         event_id: event_id || uuidv4(),
         event_type: 'pax_checkin',
@@ -108,26 +107,29 @@ router.post('/:id/checkin', async (req, res) => {
           passenger_name: passenger.name,
           method: method || 'manual',
           checked_in_count: operation.checked_in_count,
-          total_pax: operation.total_pax
+          total_pax: operation.total_pax,
+          checkin_by: req.user ? req.user.name : 'Unknown' // Auth'dan gelen kullanıcı
         }
       };
       
       const eventLog = new EventLog(eventLogData);
       await eventLog.save();
       
-      // Broadcast via WebSocket
+      // 6. WebSocket Yayını
       const io = req.app.get('io');
-      io.to(`operation:${operation.id}`).emit('pax_checked_in', {
-        operation_id: operation.id,
-        pax_id: passenger.pax_id,
-        passenger_name: passenger.name,
-        checked_in_count: operation.checked_in_count,
-        total_pax: operation.total_pax,
-        timestamp: passenger.checked_in_at
-      });
+      if (io) {
+          io.to(`operation:${operation.id}`).emit('pax_checked_in', {
+            operation_id: operation.id,
+            pax_id: passenger.pax_id,
+            passenger_name: passenger.name,
+            checked_in_count: operation.checked_in_count,
+            total_pax: operation.total_pax,
+            timestamp: passenger.checked_in_at
+          });
+      }
       
-      // Check if alert should be triggered
-      await checkAndTriggerAlert(operation, io);
+      // 7. Uyarı Kontrolü
+      if (io) await checkAndTriggerAlert(operation, io);
     }
     
     res.json({
@@ -148,7 +150,7 @@ router.post('/:id/checkin', async (req, res) => {
   }
 });
 
-// POST /api/pax - Create new passenger
+// POST /api/pax - Yeni yolcu oluşturma
 router.post('/', optionalAuth, async (req, res) => {
   try {
     const passengerData = {
@@ -159,7 +161,7 @@ router.post('/', optionalAuth, async (req, res) => {
     const passenger = new Passenger(passengerData);
     await passenger.save();
     
-    // Update operation total_pax count
+    // Operasyon toplam pax sayısını güncelle
     if (passenger.operation_id) {
       await Operation.findOneAndUpdate(
         { id: passenger.operation_id },
@@ -177,27 +179,29 @@ router.post('/', optionalAuth, async (req, res) => {
   }
 });
 
-// Helper function to check and trigger alert
+// Yardımcı Fonksiyon: Alert Kontrolü
 async function checkAndTriggerAlert(operation, io) {
   try {
-    // Parse start time (format: HH:MM)
+    // Start time parse (Format: HH:MM)
     const [hours, minutes] = operation.start_time.split(':').map(Number);
-    const startDateTime = new Date(operation.date);
+    // operation.date formatı YYYY-MM-DD ise:
+    const startDateTime = new Date(operation.date); 
     startDateTime.setHours(hours, minutes, 0, 0);
     
-    // Add buffer time (15 minutes)
     const alertThresholdMinutes = parseInt(process.env.ALERT_TIME_BUFFER_MINUTES) || 15;
     const alertTime = new Date(startDateTime.getTime() + alertThresholdMinutes * 60000);
     
     const now = new Date();
     
-    // Check if we're past alert time
+    // Zaman geçtiyse ve oran düşükse
     if (now >= alertTime) {
       const checkInRatio = operation.checked_in_count / operation.total_pax;
       const threshold = parseFloat(process.env.ALERT_CHECK_IN_THRESHOLD) || 0.7;
       
       if (checkInRatio < threshold) {
-        // Create alert event
+        // Alert Event'i daha önce atılmış mı kontrol edilebilir (flood önlemek için)
+        // Demo için direkt atıyoruz:
+        
         const alertEvent = new EventLog({
           event_id: uuidv4(),
           event_type: 'alert',
@@ -213,7 +217,6 @@ async function checkAndTriggerAlert(operation, io) {
         });
         await alertEvent.save();
         
-        // Broadcast alert
         io.to(`operation:${operation.id}`).emit('check_in_alert', {
           operation_id: operation.id,
           code: operation.code,

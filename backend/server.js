@@ -4,7 +4,12 @@ const { Server } = require('socket.io');
 const mongoose = require('mongoose');
 const cors = require('cors');
 const morgan = require('morgan');
+const { v4: uuidv4 } = require('uuid'); // Background job için gerekli
 require('dotenv').config();
+
+// Modeller (Background job için)
+const Operation = require('./models/Operation');
+const EventLog = require('./models/EventLog');
 
 const app = express();
 const server = http.createServer(app);
@@ -67,19 +72,22 @@ io.on('connection', (socket) => {
 // Routes
 app.get('/api', (req, res) => {
   res.json({ 
-    message: 'Karanix Demo Case API',
+    message: 'Karanix Demo Case API', 
     version: '1.0.0',
     status: 'running'
   });
 });
 
-// Import and use route modules
+// Import route modules
+const authRouter = require('./routes/auth'); // YENİ: Auth rotası
 const operationsRouter = require('./routes/operations');
 const vehiclesRouter = require('./routes/vehicles');
 const passengersRouter = require('./routes/passengers');
 const customersRouter = require('./routes/customers');
 const locationsRouter = require('./routes/locations');
 
+// Use routes
+app.use('/api/auth', authRouter); // YENİ: Auth endpoint'i aktif edildi
 app.use('/api/operations', operationsRouter);
 app.use('/api/vehicles', vehiclesRouter);
 app.use('/api/pax', passengersRouter);
@@ -99,6 +107,67 @@ app.use((err, req, res, next) => {
 app.use((req, res) => {
   res.status(404).json({ error: 'Route not found' });
 });
+
+// --- BACKGROUND JOB: Otomatik Uyarı Sistemi ---
+// Her 60 saniyede bir çalışır
+setInterval(async () => {
+  try {
+    const now = new Date();
+    // Bugünün aktif veya planlanmış operasyonlarını bul
+    const activeOps = await Operation.find({ 
+      date: now.toISOString().split('T')[0],
+      status: { $in: ['planned', 'active'] } 
+    });
+
+    for (const op of activeOps) {
+       // Başlangıç saatini parse et
+       const [hours, minutes] = op.start_time.split(':').map(Number);
+       const startDateTime = new Date(op.date);
+       startDateTime.setHours(hours, minutes, 0, 0);
+
+       // 15 dk tolerans (buffer)
+       const alertThresholdMinutes = 15;
+       const alertTime = new Date(startDateTime.getTime() + alertThresholdMinutes * 60000);
+
+       // Eğer zaman geçtiyse ve check-in oranı düşükse
+       if (now >= alertTime && op.total_pax > 0) {
+         const checkInRatio = op.checked_in_count / op.total_pax;
+         const threshold = 0.7;
+
+         if (checkInRatio < threshold) {
+           // Bu operasyon için son 30 dakikada atılmış bir alert var mı kontrol et (Spam önleme)
+           const recentAlert = await EventLog.findOne({
+             operation_id: op.id,
+             event_type: 'alert',
+             timestamp: { $gte: new Date(now.getTime() - 30 * 60000) }
+           });
+
+           if (!recentAlert) {
+             console.log(`⚠️ Alert Triggered for Operation ${op.code}`);
+             
+             // Alert Log Oluştur
+             await EventLog.create({
+               event_id: uuidv4(),
+               event_type: 'alert',
+               operation_id: op.id,
+               message: `Low check-in rate alert: ${(checkInRatio * 100).toFixed(1)}%`,
+               data: { ratio: checkInRatio, threshold }
+             });
+
+             // WebSocket Yayını
+             io.to(`operation:${op.id}`).emit('check_in_alert', {
+               operation_id: op.id,
+               message: `DİKKAT: Operasyon ${op.code} için check-in oranı düşük!`,
+               ratio: checkInRatio
+             });
+           }
+         }
+       }
+    }
+  } catch (err) {
+    console.error('Background Job Error:', err);
+  }
+}, 60000);
 
 // Start server
 const PORT = process.env.PORT || 8001;

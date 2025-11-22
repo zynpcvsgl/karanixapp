@@ -50,10 +50,11 @@ const operationSchema = new mongoose.Schema({
     enum: ['planned', 'active', 'completed', 'cancelled'],
     default: 'planned'
   },
-  route: {
-    type: [[Number]], // Array of [lng, lat] coordinates
-    default: []
-  },
+  // DÜZELTME: Seed.js içindeki yapıya ({ lat, lng }) uygun hale getirildi
+  route: [{
+    lat: Number,
+    lng: Number
+  }],
   created_at: {
     type: Date,
     default: Date.now
@@ -66,9 +67,9 @@ const operationSchema = new mongoose.Schema({
   timestamps: { createdAt: 'created_at', updatedAt: 'updated_at' }
 });
 
-// Indexes for performance
+// Performans İndeksleri
 operationSchema.index({ date: 1, status: 1 });
 operationSchema.index({ vehicle_id: 1 });
-operationSchema.index({ code: 1 });
+// NOT: 'code' alanı yukarıda unique: true olduğu için buradaki manuel index kaldırıldı.
 
 module.exports = mongoose.model('Operation', operationSchema);

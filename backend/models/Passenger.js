@@ -7,9 +7,15 @@ const passengerSchema = new mongoose.Schema({
     unique: true
   },
   operation_id: {
-    type: String,
+    type: String, // veya mongoose.Schema.Types.ObjectId
     required: true,
     ref: 'Operation'
+  },
+  // Opsiyonel: Merkezi lokasyon yönetimi için referans
+  location_id: {
+    type: String,
+    ref: 'Location',
+    default: null
   },
   name: {
     type: String,
@@ -67,6 +73,14 @@ const passengerSchema = new mongoose.Schema({
     type: String,
     default: null
   },
+  // --- EKLENEN KRİTİK ALAN ---
+  // PDF Gereksinimi: Çevrimdışı senkronizasyon ve Idempotency için
+  last_checkin_event_id: {
+    type: String,
+    default: null,
+    description: "Çift check-in'i önlemek için kullanılan benzersiz olay ID'si (UUID)"
+  },
+  // ---------------------------
   created_at: {
     type: Date,
     default: Date.now
@@ -83,5 +97,7 @@ const passengerSchema = new mongoose.Schema({
 passengerSchema.index({ operation_id: 1 });
 passengerSchema.index({ pax_id: 1 });
 passengerSchema.index({ status: 1 });
+// Idempotency kontrolü için index eklemek performansı artırır
+passengerSchema.index({ last_checkin_event_id: 1 }); 
 
 module.exports = mongoose.model('Passenger', passengerSchema);
