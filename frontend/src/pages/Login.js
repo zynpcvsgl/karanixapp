@@ -107,6 +107,7 @@ const Login = () => {
               <p className="font-semibold mb-1">Demo Giriş Bilgileri:</p>
               <p>Yönetici: <span className="font-mono">admin</span> / <span className="font-mono">admin123</span></p>
               <p>Rehber: <span className="font-mono">guide1</span> / <span className="font-mono">guide123</span></p>
+                <p>Sürücü: <span className="font-mono">driver1</span> / <span className="font-mono">driver123</span></p>
             </div>
           </CardFooter>
         </Card>
