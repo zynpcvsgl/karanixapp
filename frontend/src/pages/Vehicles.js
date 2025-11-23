@@ -92,14 +92,17 @@ const Vehicles = () => {
 
   const getStatusBadge = (status) => {
     const styles = {
-      'in_service': 'bg-green-100 text-green-800 hover:bg-green-100',
-      'available': 'bg-blue-100 text-blue-800 hover:bg-blue-100',
-      'maintenance': 'bg-yellow-100 text-yellow-800 hover:bg-yellow-100',
-      'offline': 'bg-gray-100 text-gray-800 hover:bg-gray-100'
+      'in_service': { className: 'bg-green-100 text-green-800 hover:bg-green-100', label: 'HİZMETTE' },
+      'available': { className: 'bg-blue-100 text-blue-800 hover:bg-blue-100', label: 'MÜSAİT' },
+      'maintenance': { className: 'bg-yellow-100 text-yellow-800 hover:bg-yellow-100', label: 'BAKIMDA' },
+      'offline': { className: 'bg-gray-100 text-gray-800 hover:bg-gray-100', label: 'ÇEVRİMDIŞI' }
     };
+    
+    const currentStyle = styles[status] || styles['offline'];
+
     return (
-      <Badge className={styles[status] || styles['offline']} variant="outline">
-        {status.toUpperCase().replace('_', ' ')}
+      <Badge className={currentStyle.className} variant="outline">
+        {currentStyle.label}
       </Badge>
     );
   };
@@ -114,7 +117,7 @@ const Vehicles = () => {
         
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogTrigger asChild>
-            <Button className="bg-blue-600 hover:bg-blue-700">
+            <Button className="bg-blue-600 hover:bg-blue-700 text-white">
               <Plus className="h-4 w-4 mr-2" />
               Yeni Araç
             </Button>
@@ -155,7 +158,7 @@ const Vehicles = () => {
                 />
               </div>
               <DialogFooter>
-                <Button type="submit">Kaydet</Button>
+                <Button type="submit" className="bg-blue-600 text-white">Kaydet</Button>
               </DialogFooter>
             </form>
           </DialogContent>
@@ -206,7 +209,7 @@ const Vehicles = () => {
                         <div className="space-y-1 text-sm">
                           <div className="flex items-center text-blue-600">
                             <Navigation className="h-3 w-3 mr-1" />
-                            {vehicle.last_ping.speed} km/h
+                            {vehicle.last_ping.speed} km/s
                           </div>
                           <div className="flex items-center text-gray-500 text-xs">
                             <MapPin className="h-3 w-3 mr-1" />
@@ -218,7 +221,7 @@ const Vehicles = () => {
                       )}
                     </TableCell>
                     <TableCell>
-                      <span className="text-sm font-medium">{vehicle.capacity} Pax</span>
+                      <span className="text-sm font-medium">{vehicle.capacity} Kişi</span>
                     </TableCell>
                   </TableRow>
                 ))

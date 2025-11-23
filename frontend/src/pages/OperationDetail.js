@@ -4,7 +4,7 @@ import { ArrowLeft, Users, MapPin, Clock, Calendar, CheckCircle } from 'lucide-r
 import { operationsAPI, passengersAPI } from '../services/api';
 import { getSocket, joinOperationRoom } from '../services/socket';
 import GoogleMapComponent from '../components/GoogleMapComponent';
-import { v4 as uuidv4 } from 'uuid'; // Idempotency için eklendi
+import { v4 as uuidv4 } from 'uuid'; // EKLENDİ: Idempotency için gerekli
 
 const OperationDetail = () => {
   const { id } = useParams();

@@ -6,6 +6,9 @@ const cors = require('cors');
 const mongoose = require('mongoose');
 const morgan = require('morgan');
 
+// Alarm sistemi için gerekli Model
+const Operation = require('./models/Operation'); 
+
 const app = express();
 const server = http.createServer(app);
 
@@ -49,6 +52,12 @@ io.on('connection', (socket) => {
   socket.on('join_vehicle', (vehicleId) => {
     socket.join(`vehicle:${vehicleId}`);
     console.log(`📡 Socket ${socket.id} joined vehicle:${vehicleId}`);
+  });
+  
+  // Yönetici odasına katıl (Alarm için)
+  socket.on('join_admin', () => {
+    socket.join('ops_managers');
+    console.log(`📡 Socket ${socket.id} joined ops_managers`);
   });
 
   socket.on('disconnect', () => {
@@ -108,6 +117,35 @@ app.use('/api/pax', passengersRoutes);
 app.use('/api/vehicles', vehiclesRoutes);
 app.use('/api/customers', customersRoutes);
 app.use('/api/locations', locationsRoutes);
+
+// ALARM SİSTEMİ: Her 60 saniyede bir kontrol et (CRON BENZERİ YAPI)
+setInterval(async () => {
+  try {
+    // Aktif operasyonları bul
+    const activeOps = await Operation.find({ status: 'active' });
+    
+    activeOps.forEach(async (op) => {
+      // Gerçek senaryoda: start_time + 15dk kontrolü yapılır.
+      // Demo için basit mantık: Aktif operasyonun check-in oranı düşükse uyar.
+      
+      const ratio = op.total_pax > 0 ? op.checked_in_count / op.total_pax : 0;
+      
+      // Eşik değer: %70
+      if (ratio < 0.7) {
+        // Yönetici odasına uyarı gönder
+        io.to('ops_managers').emit('alert', {
+          type: 'low_attendance',
+          message: `DİKKAT: ${op.tour_name} operasyonunda katılım oranı düşük (%${Math.round(ratio*100)})!`,
+          operation_id: op.id,
+          timestamp: new Date()
+        });
+        console.log(`⚠️ ALARM: ${op.tour_name} düşük katılım (%${Math.round(ratio*100)}) tespit edildi.`);
+      }
+    });
+  } catch (error) {
+    console.error('Alarm kontrol hatası:', error);
+  }
+}, 60000); // 1 dakika arayla çalışır
 
 // Error Handler
 app.use((err, req, res, next) => {

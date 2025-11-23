@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Menu, X, Home, Calendar, MapPin, Users, Briefcase } from 'lucide-react';
+import { Menu, X, Home, Calendar, MapPin, Users, Briefcase, LogOut } from 'lucide-react'; // LogOut eklendi
+import { authAPI } from '../services/api'; // API import edildi
 
 const Layout = ({ children }) => {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const location = useLocation();
 
-  // GÜNCELLENEN KISIM: Menü isimleri Türkçeleştirildi
   const navigation = [
     { name: 'Panel', href: '/', icon: Home },
     { name: 'Operasyonlar', href: '/operations', icon: Calendar },
@@ -19,6 +19,12 @@ const Layout = ({ children }) => {
       return location.pathname === '/';
     }
     return location.pathname.startsWith(path);
+  };
+
+  const handleLogout = () => {
+    if (window.confirm('Çıkış yapmak istediğinize emin misiniz?')) {
+      authAPI.logout();
+    }
   };
 
   return (
@@ -55,10 +61,11 @@ const Layout = ({ children }) => {
         <aside
           className={`${
             sidebarOpen ? 'translate-x-0' : '-translate-x-full'
-          } fixed lg:static inset-y-0 left-0 z-10 w-64 bg-white border-r border-gray-200 transform transition-transform duration-300 ease-in-out lg:translate-x-0 mt-16 lg:mt-0`}
+          } fixed lg:static inset-y-0 left-0 z-10 w-64 bg-white border-r border-gray-200 transform transition-transform duration-300 ease-in-out lg:translate-x-0 mt-16 lg:mt-0 flex flex-col`}
           data-testid="app-sidebar"
         >
-          <nav className="p-4 space-y-2">
+          {/* Navigasyon Linkleri */}
+          <nav className="p-4 space-y-2 flex-1">
             {navigation.map((item) => {
               const Icon = item.icon;
               const active = isActive(item.href);
@@ -79,6 +86,18 @@ const Layout = ({ children }) => {
               );
             })}
           </nav>
+
+          {/* Çıkış Butonu (En altta) */}
+          <div className="p-4 border-t border-gray-200">
+            <button
+              onClick={handleLogout}
+              className="flex items-center w-full px-4 py-3 text-red-600 hover:bg-red-50 rounded-lg transition-colors font-medium"
+              data-testid="logout-button"
+            >
+              <LogOut className="h-5 w-5 mr-3" />
+              Çıkış Yap
+            </button>
+          </div>
         </aside>
 
         {/* Main Content */}

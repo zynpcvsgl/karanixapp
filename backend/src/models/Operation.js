@@ -25,16 +25,16 @@ const operationSchema = new mongoose.Schema({
   },
   vehicle_id: {
     type: String,
-    required: true,
+    required: false, // ZORUNLULUK KALDIRILDI (Araçsız planlama yapılabilir)
     ref: 'Vehicle'
   },
   driver_id: {
     type: String,
-    required: true
+    required: false // ZORUNLULUK KALDIRILDI
   },
   guide_id: {
     type: String,
-    required: true
+    required: false // ZORUNLULUK KALDIRILDI
   },
   total_pax: {
     type: Number,
@@ -50,7 +50,7 @@ const operationSchema = new mongoose.Schema({
     enum: ['planned', 'active', 'completed', 'cancelled'],
     default: 'planned'
   },
-  // DÜZELTME: Seed.js içindeki yapıya ({ lat, lng }) uygun hale getirildi
+  // Rota bilgisi
   route: [{
     lat: Number,
     lng: Number
@@ -70,6 +70,5 @@ const operationSchema = new mongoose.Schema({
 // Performans İndeksleri
 operationSchema.index({ date: 1, status: 1 });
 operationSchema.index({ vehicle_id: 1 });
-// NOT: 'code' alanı yukarıda unique: true olduğu için buradaki manuel index kaldırıldı.
 
 module.exports = mongoose.model('Operation', operationSchema);
