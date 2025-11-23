@@ -3,12 +3,12 @@ const mongoose = require('mongoose');
 const { v4: uuidv4 } = require('uuid');
 
 // Models
-const Customer = require('../models/Customer');
-const Location = require('../models/Location');
-const Vehicle = require('../models/Vehicle');
-const Operation = require('../models/Operation');
-const Passenger = require('../models/Passenger');
-const User = require('../models/User');
+const Customer = require('./models/Customer');
+const Location = require('./models/Location');
+const Vehicle = require('./models/Vehicle');
+const Operation = require('./models/Operation');
+const Passenger = require('./models/Passenger');
+const User = require('./models/User');
 
 // MongoDB URI
 const MONGODB_URI = process.env.MONGO_URL 

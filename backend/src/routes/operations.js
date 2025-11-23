@@ -1,10 +1,10 @@
 const express = require('express');
 const router = express.Router();
 const { v4: uuidv4 } = require('uuid');
-const Operation = require('../src/models/Operation');
-const Passenger = require('../src/models/Passenger');
-const Vehicle = require('../src/models/Vehicle');
-const EventLog = require('../src/models/EventLog');
+const Operation = require('../models/Operation');
+const Passenger = require('../models/Passenger');
+const Vehicle = require('../models/Vehicle');
+const EventLog = require('../models/EventLog');
 const { optionalAuth } = require('../middleware/auth');
 
 // GET /api/operations?date=YYYY-MM-DD&status=active|planned

@@ -4,9 +4,15 @@ const http = require('http');
 const { Server } = require('socket.io');
 const cors = require('cors');
 const mongoose = require('mongoose');
+const morgan = require('morgan');
 
 const app = express();
 const server = http.createServer(app);
+
+// Morgan logging (development)
+if (process.env.NODE_ENV === 'development') {
+  app.use(morgan('dev'));
+}
 
 // CORS yapılandırması
 app.use(cors({
@@ -78,12 +84,12 @@ app.get('/', (req, res) => {
     message: 'Karanix API Server',
     version: '1.0.0',
     endpoints: {
+      auth: '/api/auth',
       operations: '/api/operations',
       vehicles: '/api/vehicles',
       passengers: '/api/pax',
       customers: '/api/customers',
-      locations: '/api/locations',
-      auth: '/api/auth'
+      locations: '/api/locations'
     }
   });
 });

@@ -5,7 +5,7 @@ const Passenger = require('../models/Passenger');
 const Operation = require('../models/Operation');
 const EventLog = require('../models/EventLog');
 // GÜNCELLEME 1: authMiddleware içeri aktarıldı
-const { optionalAuth, authMiddleware } = require('../../middleware/auth');
+const { optionalAuth, authMiddleware } = require('../middleware/auth');
 
 // GET /api/pax - Yolcu listesi (Opsiyonel Auth)
 router.get('/', optionalAuth, async (req, res) => {

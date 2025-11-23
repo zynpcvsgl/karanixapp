@@ -1,8 +1,8 @@
 const express = require('express');
 const router = express.Router();
 const { v4: uuidv4 } = require('uuid');
-const Location = require('../src/models/Location');
-const Customer = require('../src/models/Customer');
+const Location = require('../models/Location');
+const Customer = require('../models/Customer');
 const { optionalAuth } = require('../middleware/auth');
 
 // GET /api/locations - Get all locations
