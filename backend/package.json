@@ -1,21 +1,19 @@
 {
-  "name": "karanix-backend",
-  "version": "1.0.0",
-  "description": "Karanix Tour Operation Management Backend",
-  "main": "src/server.js",
   "scripts": {
     "start": "node src/server.js",
     "dev": "nodemon src/server.js",
-    "seed": "node src/scripts/seed.js",
-    "test": "node src/scripts/test.js"
+    "seed": "node src/seed.js",
+    "test": "echo 'No tests yet'"
   },
   "dependencies": {
-    "express": "^4.18.2",
-    "mongoose": "^8.0.0",
-    "socket.io": "^4.6.0",
+    "axios": "^1.13.2",
     "cors": "^2.8.5",
     "dotenv": "^16.3.1",
+    "express": "^4.18.2",
     "jsonwebtoken": "^9.0.2",
+    "mongoose": "^8.0.0",
+    "morgan": "^1.10.0",
+    "socket.io": "^4.6.0",
     "uuid": "^9.0.1"
   },
   "devDependencies": {
