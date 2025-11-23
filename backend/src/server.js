@@ -66,16 +66,17 @@ io.on('connection', (socket) => {
 });
 
 // MongoDB Bağlantısı (GÜNCELLENDİ)
-// .env'den gelen veya varsayılan bağlantı dizesini doğru formatta işler
-const MONGODB_URI = process.env.MONGO_URL 
-  ? (process.env.MONGO_URL.includes('?') 
-      ? process.env.MONGO_URL.replace('?', `/${process.env.DB_NAME || 'karanix'}?`) 
-      : `${process.env.MONGO_URL}/${process.env.DB_NAME || 'karanix'}`)
-  : 'mongodb+srv://zeynep:zeynep123@karanix.rwiuhri.mongodb.net/karanix?appName=karanix';
+// Fazladan slash karakterlerini ve URL yapısını düzeltir
+let MONGODB_URI = process.env.MONGO_URL || 'mongodb+srv://zeynep:zeynep123@karanix.rwiuhri.mongodb.net/karanix?appName=karanix';
+const DB_NAME = process.env.DB_NAME || 'karanix';
+
+if (!MONGODB_URI.includes(DB_NAME) && !MONGODB_URI.includes('?')) {
+  MONGODB_URI = MONGODB_URI.endsWith('/') ? `${MONGODB_URI}${DB_NAME}` : `${MONGODB_URI}/${DB_NAME}`;
+}
+MONGODB_URI = MONGODB_URI.replace(/([^:])\/\//g, '$1/');
 
 mongoose.connect(MONGODB_URI)
   .then(() => {
-    // Güvenlik için logda şifreyi gizle
     const safeURI = MONGODB_URI.replace(/:([^:@]{1,})@/, ':****@');
     console.log('✅ MongoDB Connected:', safeURI);
   })

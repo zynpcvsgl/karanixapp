@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Plus, Trash2, User, Building, Phone, Mail } from 'lucide-react';
 import { customersAPI } from '../services/api';
+import { useToast } from "@/hooks/use-toast"; // Toast hook'u eklendi
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -32,6 +33,8 @@ const Customers = () => {
     phone: ''
   });
 
+  const { toast } = useToast(); // Toast fonksiyonunu çağır
+
   useEffect(() => {
     loadCustomers();
   }, []);
@@ -39,16 +42,15 @@ const Customers = () => {
   const loadCustomers = async () => {
     setLoading(true);
     try {
-      console.log("Müşteriler yükleniyor..."); // DEBUG
       const response = await customersAPI.getCustomers();
-      console.log("API Yanıtı:", response); // DEBUG - Veri gelip gelmediğini kontrol edin
-      
-      // Backend { success: true, data: [...] } dönüyor, biz data dizisini alıyoruz
       setCustomers(response.data || []);
     } catch (error) {
       console.error('Müşteriler yüklenirken hata oluştu:', error);
-      // Hata varsa kullanıcıya gösterelim (Opsiyonel)
-      // alert('Müşteri listesi yüklenemedi. Lütfen konsolu kontrol edin.');
+      toast({
+        title: "Hata",
+        description: "Müşteri listesi yüklenemedi.",
+        variant: "destructive",
+      });
     } finally {
       setLoading(false);
     }
@@ -57,7 +59,6 @@ const Customers = () => {
   const handleCreate = async (e) => {
     e.preventDefault();
     try {
-      console.log("Yeni müşteri gönderiliyor:", newCustomer); // DEBUG
       await customersAPI.createCustomer(newCustomer);
       
       setIsDialogOpen(false);
@@ -65,10 +66,22 @@ const Customers = () => {
       
       // Listeyi yenile
       await loadCustomers(); 
-      alert('Müşteri başarıyla eklendi!');
+      
+      // Başarı Mesajı
+      toast({
+        title: "Başarılı",
+        description: "Müşteri başarıyla eklendi!",
+        className: "bg-green-50 border-green-200 text-green-800"
+      });
+
     } catch (error) {
       console.error('Müşteri oluşturma hatası:', error);
-      alert('Müşteri oluşturulamadı. Backend bağlantısını kontrol edin.');
+      // Hata Mesajı
+      toast({
+        title: "Hata",
+        description: "Müşteri oluşturulamadı. Lütfen tekrar deneyin.",
+        variant: "destructive",
+      });
     }
   };
 
@@ -76,9 +89,20 @@ const Customers = () => {
     if (window.confirm('Bu müşteriyi silmek istediğinize emin misiniz?')) {
       try {
         await customersAPI.deleteCustomer(id);
-        loadCustomers();
+        await loadCustomers();
+        
+        toast({
+          title: "Silindi",
+          description: "Müşteri kaydı başarıyla silindi.",
+        });
+
       } catch (error) {
         console.error('Error deleting customer:', error);
+        toast({
+          title: "Hata",
+          description: "Silme işlemi sırasında bir sorun oluştu.",
+          variant: "destructive",
+        });
       }
     }
   };

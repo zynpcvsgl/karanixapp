@@ -1,6 +1,7 @@
 import axios from 'axios';
 
-const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8001';
+// Backend portu 8002 olarak güncellendi (Server.js ile uyumlu olması için)
+const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8002';
 const API = `${BACKEND_URL}/api`;
 
 // Axios instance oluştur
@@ -19,6 +20,24 @@ axiosInstance.interceptors.request.use(
   },
   (error) => Promise.reject(error)
 );
+
+// --- YENİ EKLENEN: Response Interceptor (Otomatik Çıkış) ---
+axiosInstance.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    // Eğer sunucudan 401 (Yetkisiz) hatası gelirse
+    if (error.response?.status === 401) {
+      console.warn('Oturum süresi doldu, çıkış yapılıyor...');
+      // Token'ı temizle
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      // Login sayfasına yönlendir
+      window.location.href = '/login';
+    }
+    return Promise.reject(error);
+  }
+);
+// -----------------------------------------------------------
 
 // Auth API
 export const authAPI = {
@@ -57,7 +76,7 @@ export const operationsAPI = {
     return response.data;
   },
 
-  // EKLENEN FONKSİYON
+  // Operasyon oluşturma
   createOperation: async (data) => {
     const response = await axiosInstance.post('/operations', data);
     return response.data;

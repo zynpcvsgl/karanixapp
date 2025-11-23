@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { Calendar, Users, Clock, ChevronRight, Plus, Filter } from 'lucide-react';
 import { operationsAPI, vehiclesAPI } from '../services/api';
-import { format, addDays, parseISO } from 'date-fns';
+import { format, addDays, isValid, parseISO } from 'date-fns'; // isValid eklendi
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,57 +16,59 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 
+// Varsayılan tarih formatı
+const DATE_FORMAT = 'yyyy-MM-dd';
+
 const OperationList = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const [operations, setOperations] = useState([]);
   const [vehicles, setVehicles] = useState([]);
   const [loading, setLoading] = useState(true);
   
-  // FİLTRELEME STATE'İ (GÜNCELLENDİ)
-  // URL'den 'date' parametresini al, yoksa bugünü varsayılan yap
-  const initialDate = searchParams.get('date') || format(new Date(), 'yyyy-MM-dd');
+  // URL'den tarihi al, yoksa bugünü kullan
+  const urlDate = searchParams.get('date');
+  const initialDate = urlDate && isValid(parseISO(urlDate)) 
+    ? urlDate 
+    : format(new Date(), DATE_FORMAT);
+
   const [selectedDate, setSelectedDate] = useState(initialDate);
   
   // Modal state'leri
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [newOp, setNewOp] = useState({
     tour_name: '',
-    date: format(new Date(), 'yyyy-MM-dd'),
+    date: format(new Date(), DATE_FORMAT),
     start_time: '09:00',
     total_pax: 15,
     vehicle_id: ''
   });
 
-  // Tarih değiştiğinde operasyonları yükle
+  // Tarih değiştiğinde veya sayfa yüklendiğinde
   useEffect(() => {
-    loadOperations();
-    loadVehicles();
-    // URL'i güncelle
-    setSearchParams({ date: selectedDate });
-  }, [selectedDate]);
+    const fetchData = async () => {
+      setLoading(true);
+      try {
+        // URL'i güncelle
+        setSearchParams({ date: selectedDate });
 
-  const loadOperations = async () => {
-    setLoading(true);
-    try {
-      // Seçili tarihe göre istek at
-      const response = await operationsAPI.getOperations(selectedDate);
-      setOperations(response.data || []);
-    } catch (error) {
-      console.error('Operasyonlar yüklenirken hata:', error);
-      setOperations([]);
-    } finally {
-      setLoading(false);
-    }
-  };
+        // Operasyonları ve Araçları paralel çek
+        const [opsResponse, vehiclesResponse] = await Promise.all([
+          operationsAPI.getOperations(selectedDate),
+          vehiclesAPI.getVehicles()
+        ]);
 
-  const loadVehicles = async () => {
-    try {
-      const response = await vehiclesAPI.getVehicles();
-      setVehicles(response.data || []);
-    } catch (error) {
-      console.error('Araçlar yüklenirken hata:', error);
-    }
-  };
+        setOperations(opsResponse.data || []);
+        setVehicles(vehiclesResponse.data || []);
+      } catch (error) {
+        console.error('Veri yüklenirken hata:', error);
+        setOperations([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [selectedDate, setSearchParams]);
 
   const handleCreate = async (e) => {
     e.preventDefault();
@@ -76,15 +78,17 @@ const OperationList = () => {
       
       // Eğer oluşturulan operasyonun tarihi, şu an görüntülenen tarih ile aynıysa listeyi yenile
       if (newOp.date === selectedDate) {
-        loadOperations();
+        const response = await operationsAPI.getOperations(selectedDate);
+        setOperations(response.data || []);
       } else {
         // Değilse o tarihe git
         setSelectedDate(newOp.date);
       }
 
+      // Formu sıfırla
       setNewOp({
         tour_name: '',
-        date: format(new Date(), 'yyyy-MM-dd'),
+        date: format(new Date(), DATE_FORMAT),
         start_time: '09:00',
         total_pax: 15,
         vehicle_id: ''
@@ -97,15 +101,15 @@ const OperationList = () => {
     }
   };
 
-  // Kısayol butonları için yardımcı fonksiyon
+  // Kısayol butonları için
   const setQuickDate = (type) => {
     const today = new Date();
     let targetDate = '';
     
     if (type === 'today') {
-      targetDate = format(today, 'yyyy-MM-dd');
+      targetDate = format(today, DATE_FORMAT);
     } else if (type === 'tomorrow') {
-      targetDate = format(addDays(today, 1), 'yyyy-MM-dd');
+      targetDate = format(addDays(today, 1), DATE_FORMAT);
     }
     
     setSelectedDate(targetDate);
@@ -225,7 +229,7 @@ const OperationList = () => {
           <button
             onClick={() => setQuickDate('today')}
             className={`px-4 py-2 rounded-md font-medium transition-colors text-sm ${
-              selectedDate === format(new Date(), 'yyyy-MM-dd')
+              selectedDate === format(new Date(), DATE_FORMAT)
                 ? 'bg-blue-100 text-blue-700 border border-blue-200'
                 : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
             }`}
@@ -235,7 +239,7 @@ const OperationList = () => {
           <button
             onClick={() => setQuickDate('tomorrow')}
             className={`px-4 py-2 rounded-md font-medium transition-colors text-sm ${
-              selectedDate === format(addDays(new Date(), 1), 'yyyy-MM-dd')
+              selectedDate === format(addDays(new Date(), 1), DATE_FORMAT)
                 ? 'bg-blue-100 text-blue-700 border border-blue-200'
                 : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
             }`}
