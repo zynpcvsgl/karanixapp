@@ -6,11 +6,12 @@ const Layout = ({ children }) => {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const location = useLocation();
 
+  // GÜNCELLENEN KISIM: Menü isimleri Türkçeleştirildi
   const navigation = [
-    { name: 'Dashboard', href: '/', icon: Home },
-    { name: 'Operations', href: '/operations', icon: Calendar },
-    { name: 'Customers', href: '/customers', icon: Users },
-    { name: 'Vehicles', href: '/vehicles', icon: MapPin },
+    { name: 'Panel', href: '/', icon: Home },
+    { name: 'Operasyonlar', href: '/operations', icon: Calendar },
+    { name: 'Müşteriler', href: '/customers', icon: Users },
+    { name: 'Araçlar', href: '/vehicles', icon: MapPin },
   ];
 
   const isActive = (path) => {
@@ -78,8 +79,6 @@ const Layout = ({ children }) => {
               );
             })}
           </nav>
-          
-          {/* Alt kısımdaki versiyon bilgisi kaldırıldı */}
         </aside>
 
         {/* Main Content */}
