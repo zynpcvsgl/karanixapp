@@ -1,259 +1,166 @@
-# Karanix Demo Case - Real-time Operation Tracking System
+# 🚌 Karanix Demo - Canlı Operasyon Takip Sistemi
 
-A full-stack real-time operation tracking system built with **Node.js**, **React**, **MongoDB**, and **Socket.IO**. Features GPS heartbeat tracking, passenger check-in management, and live map visualization.
+Karanix Demo, turizm ve taşımacılık operasyonlarını gerçek zamanlı olarak izlemeyi sağlayan; **Node.js**, **React**, **MongoDB** ve **Socket.IO** teknolojileriyle geliştirilmiş tam kapsamlı bir yönetim panelidir.
 
-## 📚 Table of Contents
-
-- [Features](#-features)
-- [Tech Stack](#-tech-stack)
-- [Quick Start](#-quick-start)
-- [Project Structure](#-project-structure)
-- [API Documentation](#-api-documentation)
-- [WebSocket Events](#-websocket-events)
-- [Testing](#-testing)
-- [Google Maps Setup](#-google-maps-setup)
-- [Acceptance Criteria](#-acceptance-criteria)
-
-## 🎯 Features
-
-### Backend
-- ✅ **Node.js + Express** REST API
-- ✅ **Socket.IO** for real-time WebSocket communication
-- ✅ **MongoDB** with Mongoose ODM
-- ✅ **GPS Heartbeat System** - Real-time vehicle tracking
-- ✅ **Passenger Check-in** with idempotency support
-- ✅ **Alert System** - Automatic low check-in rate alerts
-- ✅ **JWT Authentication** (optional, not enforced in demo)
-- ✅ **Database Seeding** with sample data
-
-### Frontend
-- ✅ **React** with modern hooks
-- ✅ **Google Maps Integration** with real-time vehicle tracking
-- ✅ **WebSocket Client** for live updates
-- ✅ **Responsive Dashboard** with Tailwind CSS
-- ✅ **Operation Management** (Today/Tomorrow filtering)
-- ✅ **Passenger Manifest** with check-in functionality
-- ✅ **Real-time Notifications**
-
-## 🛠️ Tech Stack
-
-### Backend
-- Node.js 18+
-- Express.js
-- Socket.IO 4.x
-- MongoDB 5.x
-- Mongoose ODM
-- JWT for authentication
-
-### Frontend
-- React 19
-- React Router v7
-- Socket.IO Client
-- @react-google-maps/api
-- Tailwind CSS
-- Axios for HTTP requests
-- Lucide React (icons)
-- date-fns
-
-## 🚀 Quick Start
-
-### Prerequisites
-- Node.js 18+ and Yarn
-- MongoDB running on localhost:27017
-
-### Installation
-
-```bash
-# Install backend dependencies
-cd /app/backend
-yarn install
-
-# Install frontend dependencies
-cd /app/frontend
-yarn install
-```
-
-### Setup Environment Variables
-
-**Backend** (`/app/backend/.env`):
-```env
-MONGO_URL=mongodb://localhost:27017
-DB_NAME=karanix_demo
-PORT=8001
-NODE_ENV=development
-CORS_ORIGINS=*
-JWT_SECRET=karanix_demo_secret_key_2024
-JWT_EXPIRES_IN=7d
-ALERT_CHECK_IN_THRESHOLD=0.7
-ALERT_TIME_BUFFER_MINUTES=15
-```
-
-**Frontend** (`/app/frontend/.env`):
-```env
-REACT_APP_BACKEND_URL=http://localhost:8001
-REACT_APP_GOOGLE_MAPS_API_KEY=YOUR_GOOGLE_MAPS_API_KEY
-```
-
-### Seed Database
-
-```bash
-cd /app/backend
-yarn seed
-```
-
-This creates: 2 Customers, 4 Locations, 3 Vehicles, 3 Operations, 13 Passengers
-
-### Run Services
-
-```bash
-# Start backend
-cd /app/backend
-yarn start
-
-# Start frontend (in another terminal)
-cd /app/frontend
-yarn start
-```
-
-### Access Application
-
-- **Frontend**: http://localhost:3000
-- **Backend API**: http://localhost:8001/api
-- **WebSocket**: ws://localhost:8001
-
-## 📁 Project Structure
-
-```
-/app/
-├── backend/
-│   ├── models/              # Mongoose models
-│   ├── routes/              # API routes
-│   ├── middleware/          # JWT auth
-│   ├── server.js            # Express + Socket.IO
-│   ├── seed.js              # Database seeding
-│   ├── test_heartbeat.js    # GPS simulator
-│   └── README.md
-│
-├── frontend/
-│   ├── src/
-│   │   ├── components/      # React components
-│   │   ├── pages/           # Page components
-│   │   └── services/        # API & WebSocket clients
-│   └── package.json
-│
-└── README.md (this file)
-```
-
-## 📡 API Documentation
-
-### Operations
-
-```http
-GET /api/operations?date=YYYY-MM-DD&status=active
-GET /api/operations/:id
-POST /api/operations/:id/start
-```
-
-### Vehicles
-
-```http
-POST /api/vehicles/:id/heartbeat
-{
-  "lat": 41.0082,
-  "lng": 28.9784,
-  "heading": 45,
-  "speed": 25
-}
-```
-
-### Passengers
-
-```http
-POST /api/pax/:id/checkin
-{
-  "method": "qr",
-  "gps": {"lat": 41.0082, "lng": 28.9784}
-}
-```
-
-Full API docs: See `/app/backend/README.md`
-
-## 🔌 WebSocket Events
-
-### Client → Server
-```javascript
-socket.emit('join_operation', 'operation-uuid');
-socket.emit('join_vehicle', 'vehicle-uuid');
-```
-
-### Server → Client
-```javascript
-socket.on('vehicle_position', (data) => { ... });
-socket.on('pax_checked_in', (data) => { ... });
-socket.on('check_in_alert', (data) => { ... });
-```
-
-## 🧪 Testing
-
-### Test Backend API
-```bash
-curl http://localhost:8001/api
-curl "http://localhost:8001/api/operations?date=$(date +%Y-%m-%d)"
-```
-
-### Simulate GPS Heartbeat
-```bash
-cd /app/backend
-node test_heartbeat.js
-```
-
-Sends GPS heartbeat every 5 seconds, simulating vehicle movement.
-
-### Test Check-in
-```bash
-PAX_ID="<from-database>"
-curl -X POST http://localhost:8001/api/pax/$PAX_ID/checkin \
-  -H "Content-Type: application/json" \
-  -d '{"method": "manual", "gps": {"lat": 41.0082, "lng": 28.9784}}'
-```
-
-## 🗺️ Google Maps Setup
-
-1. Get API key from [Google Cloud Console](https://console.cloud.google.com/)
-2. Enable **Maps JavaScript API**
-3. Add to `/app/frontend/.env`:
-   ```
-   REACT_APP_GOOGLE_MAPS_API_KEY=AIza...your_key_here
-   ```
-4. Restart frontend
-
-## ✅ Acceptance Criteria
-
-### ✅ Backend
-1. Server runs: `curl http://localhost:8001/api`
-2. Operations API returns data
-3. Heartbeat saves to DB and broadcasts via WebSocket
-4. Check-in updates status and increments count
-
-### ✅ Frontend
-1. Dashboard loads at http://localhost:3000
-2. Operations list filters by Today/Tomorrow
-3. Operation detail shows map with markers
-4. Real-time updates work (heartbeat + check-in)
-
-### ✅ Real-time System
-1. WebSocket connects successfully
-2. GPS heartbeat → DB → WebSocket → Map updates
-3. Check-in → Status updated → WebSocket → UI updates
-
-## 📝 Notes
-
-- **Alert System**: Triggers when check-in < 70% after start time + 15 min
-- **Data Models**: All use UUID (no MongoDB ObjectId)
-- **Security**: CORS allows all origins (change for production)
-- **History**: Vehicle history auto-deletes after 7 days
+Bu proje; operasyon planlama, araçların canlı harita üzerinde takibi, yolcu check-in süreçleri ve otomatik durum bildirimleri gibi temel lojistik ihtiyaçları karşılamak üzere tasarlanmıştır.
 
 ---
 
-**Karanix Software Solutions - Technical Evaluation Demo**  
-Version 1.0.0
+## 🚀 Özellikler
+
+### 🖥️ Frontend (Ön Yüz)
+* **Canlı Harita Entegrasyonu:** Google Maps üzerinde araçların anlık konumlarını, rotalarını ve yolcu duraklarını görüntüleme.
+* **Gelişmiş Operasyon Yönetimi:**
+  * Bugün/Yarın hızlı filtreleri.
+  * Tarih seçici (Date Picker) ile geçmiş/gelecek operasyonları görüntüleme.
+  * Yeni operasyon oluşturma ve araç atama.
+* **Yolcu Manifestosu:** Yolcu listesi görüntüleme, anlık check-in yapma ve doluluk oranlarını takip etme.
+* **Anlık Bildirimler (Toast):** İşlem başarı/hata durumları ve sistem alarmları için şık bildirimler.
+* **Güvenli Oturum:** Token süresi dolduğunda otomatik çıkış yapma özelliği.
+* **Modern Arayüz:** Tailwind CSS ve shadcn/ui bileşenleri ile geliştirilmiş responsive tasarım.
+
+### ⚙️ Backend (Arka Yüz)
+* **RESTful API:** Operasyon, araç, yolcu ve kullanıcı verileri için gelişmiş API uç noktaları.
+* **Gerçek Zamanlı İletişim:** Socket.IO ile araç konumları ve check-in durumlarının anlık senkronizasyonu.
+* **GPS Heartbeat Sistemi:** Araçlardan gelen konum verilerini işleme ve veritabanına kaydetme.
+* **Otomatik Alarm Sistemi (Cron Job):** Operasyon sırasında düşük katılım (%70 altı) olması durumunda yöneticiye otomatik uyarı gönderme (Her 60 saniyede bir kontrol).
+* **Idempotency (Veri Tutarlılığı):** Çift kayıtları önlemek için check-in işlemlerinde benzersiz işlem kimlikleri (UUID) kullanımı.
+* **Güvenli Veritabanı Bağlantısı:** MongoDB bağlantı hatalarını ve URI format sorunlarını otomatik düzelten yapı.
+
+---
+
+## 🛠️ Teknoloji Yığını
+
+* **Runtime:** Node.js (v18+)
+* **Database:** MongoDB (Mongoose ODM)
+* **Frontend Framework:** React 19
+* **Backend Framework:** Express.js
+* **Real-time:** Socket.IO
+* **Styling:** Tailwind CSS
+* **Map:** @react-google-maps/api
+* **Utilities:** date-fns, uuid, axios
+
+---
+
+## ⚙️ Kurulum ve Çalıştırma
+
+Projeyi yerel ortamınızda çalıştırmak için aşağıdaki adımları takip edin.
+
+### 1. Ön Hazırlık
+* Bilgisayarınızda **Node.js** (v18 veya üzeri) yüklü olmalıdır.
+* Çalışan bir **MongoDB** bağlantınız (Yerel veya Atlas URL) olmalıdır.
+* Geçerli bir **Google Maps API Anahtarı** gereklidir.
+
+### 2. Paketlerin Yüklenmesi
+
+Proje ana dizininde terminal açın ve sırasıyla arka yüz ve ön yüz bağımlılıklarını yükleyin:
+
+```bash
+# Backend paketlerini yükle
+cd backend
+npm install
+
+# Ana dizine geri dön ve Frontend paketlerini yükle
+cd ../frontend
+npm install --legacy-peer-deps
+```
+
+### 3. Çevresel Değişkenlerin (.env) Ayarlanması
+
+**Backend Ayarları:**
+`backend/.env` dosyasını oluşturun ve içine şu bilgileri ekleyin:
+
+```env
+PORT=8002
+# MongoDB Bağlantı Adresiniz
+MONGO_URL=mongodb+srv://kullanici:sifre@cluster.mongodb.net
+DB_NAME=karanix
+CORS_ORIGINS=*
+```
+
+**Frontend Ayarları:**
+`frontend/.env` dosyasını oluşturun ve içine şu bilgileri ekleyin:
+
+```env
+# Backend API adresi (Port backend ile aynı olmalı)
+REACT_APP_BACKEND_URL=http://localhost:8002
+
+# Google Maps JavaScript API Anahtarınız
+REACT_APP_GOOGLE_MAPS_API_KEY=AIzaSy...SIZIN_ANAHTARINIZ
+```
+
+### 4. Veritabanını Hazırlama (Seed)
+
+Sistemi test etmek için gerekli örnek verileri (1 haftalık dolu operasyon planı, araçlar, müşteriler ve yolcular) oluşturun:
+
+```bash
+cd backend
+npm run seed
+```
+*(Terminalde "Seed işlemi başarıyla tamamlandı!" mesajını görmelisiniz.)*
+
+### 5. Uygulamayı Başlatma
+
+Sistemi çalıştırmak için iki ayrı terminal penceresi kullanın:
+
+**Terminal 1 (Backend):**
+```bash
+cd backend
+npm start
+```
+
+**Terminal 2 (Frontend):**
+```bash
+cd frontend
+npm start
+```
+_(Frontend otomatik olarak tarayıcıda açılacaktır. Eğer 3000 portu doluysa gelen uyarıya 'Y' diyerek devam edin.)_
+
+---
+
+## 🔑 Demo Giriş Bilgileri
+
+Panel erişimi için aşağıdaki test hesaplarını kullanabilirsiniz:
+
+| Rol | Kullanıcı Adı | Şifre | Yetki |
+| :--- | :--- | :--- | :--- |
+| **Yönetici** | `admin` | `admin123` | Tam Erişim, Alarm Görüntüleme |
+| **Rehber** | `guide1` | `guide123` | Check-in Yapma |
+| **Sürücü** | `driver1` | `driver123` | Salt Okunur |
+
+---
+
+## 🧪 Test ve Simülasyon
+
+Araçların harita üzerinde hareket ettiğini görmek için backend tarafındaki simülasyon scriptini çalıştırabilirsiniz:
+
+```bash
+# Backend klasöründe:
+node test_heartbeat.js
+```
+*Bu script, veritabanındaki ilk aracı alır ve İstanbul içinde rastgele bir rota üzerinde hareket ettirerek sisteme GPS verisi gönderir. Frontend haritasında aracın hareketini canlı olarak izleyebilirsiniz.*
+
+---
+
+## 📂 Proje Yapısı
+
+```
+karanixapp/
+├── backend/
+│   ├── src/
+│   │   ├── config/         # Veritabanı ve ortam ayarları
+│   │   ├── models/         # Mongoose veritabanı şemaları
+│   │   ├── routes/         # API yönlendirmeleri
+│   │   ├── server.js       # Ana sunucu dosyası (Express + Socket.IO + Alarm Sistemi)
+│   │   └── seed.js         # 1 Haftalık Detaylı Örnek Veri Oluşturucu
+│   └── test_heartbeat.js   # GPS simülasyon scripti
+│
+├── frontend/
+│   ├── src/
+│   │   ├── components/     # UI bileşenleri (Harita, Tablo, Modal, Toast vb.)
+│   │   ├── pages/          # Sayfa bileşenleri (Dashboard, Operasyonlar, Müşteriler vb.)
+│   │   ├── services/       # API (Axios Interceptor) ve WebSocket servisleri
+│   │   └── App.js          # Ana uygulama bileşeni (Error Boundary dahil)
+│   └── .env                # Frontend ayar dosyası
+└── README.md               # Proje dokümantasyonu
+```
