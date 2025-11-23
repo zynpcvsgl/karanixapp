@@ -116,8 +116,6 @@ npm start
 ```
 
 
----
-
 ## 🔑 Demo Giriş Bilgileri
 
 Panel erişimi için aşağıdaki test hesaplarını kullanabilirsiniz:
