@@ -39,10 +39,16 @@ const Customers = () => {
   const loadCustomers = async () => {
     setLoading(true);
     try {
+      console.log("Müşteriler yükleniyor..."); // DEBUG
       const response = await customersAPI.getCustomers();
+      console.log("API Yanıtı:", response); // DEBUG - Veri gelip gelmediğini kontrol edin
+      
+      // Backend { success: true, data: [...] } dönüyor, biz data dizisini alıyoruz
       setCustomers(response.data || []);
     } catch (error) {
-      console.error('Error loading customers:', error);
+      console.error('Müşteriler yüklenirken hata oluştu:', error);
+      // Hata varsa kullanıcıya gösterelim (Opsiyonel)
+      // alert('Müşteri listesi yüklenemedi. Lütfen konsolu kontrol edin.');
     } finally {
       setLoading(false);
     }
@@ -51,13 +57,18 @@ const Customers = () => {
   const handleCreate = async (e) => {
     e.preventDefault();
     try {
+      console.log("Yeni müşteri gönderiliyor:", newCustomer); // DEBUG
       await customersAPI.createCustomer(newCustomer);
+      
       setIsDialogOpen(false);
       setNewCustomer({ name: '', company: '', email: '', phone: '' });
-      loadCustomers();
+      
+      // Listeyi yenile
+      await loadCustomers(); 
+      alert('Müşteri başarıyla eklendi!');
     } catch (error) {
-      console.error('Error creating customer:', error);
-      alert('Müşteri oluşturulamadı');
+      console.error('Müşteri oluşturma hatası:', error);
+      alert('Müşteri oluşturulamadı. Backend bağlantısını kontrol edin.');
     }
   };
 
@@ -82,7 +93,7 @@ const Customers = () => {
         
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogTrigger asChild>
-            <Button className="bg-blue-600 hover:bg-blue-700">
+            <Button className="bg-blue-600 hover:bg-blue-700 text-white">
               <Plus className="h-4 w-4 mr-2" />
               Yeni Müşteri
             </Button>
@@ -129,7 +140,7 @@ const Customers = () => {
                 />
               </div>
               <DialogFooter>
-                <Button type="submit">Kaydet</Button>
+                <Button type="submit" className="bg-blue-600 text-white">Kaydet</Button>
               </DialogFooter>
             </form>
           </DialogContent>

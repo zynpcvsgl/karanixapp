@@ -8,7 +8,9 @@ const { optionalAuth } = require('../middleware/auth');
 // GET /api/customers - Get all customers
 router.get('/', optionalAuth, async (req, res) => {
   try {
-    const customers = await Customer.find().populate('locations');
+    // DÜZELTME: .populate('locations') kaldırıldı.
+    // Çünkü locations dizisi UUID stringleri içeriyor, ObjectId değil.
+    const customers = await Customer.find();
     
     res.json({
       success: true,
@@ -30,7 +32,7 @@ router.get('/:id', optionalAuth, async (req, res) => {
       return res.status(404).json({ error: 'Customer not found' });
     }
     
-    // Get customer's locations
+    // Müşterinin lokasyonlarını manuel olarak çekiyoruz (Bu kısım zaten doğruydu)
     const locations = await Location.find({ customer_id: customer.customer_id });
     
     res.json({
