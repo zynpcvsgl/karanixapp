@@ -83,7 +83,7 @@ CORS_ORIGINS=*
 
 ```env
 # Backend API adresi (Port backend ile aynı olmalı)
-REACT_APP_BACKEND_URL=http://localhost:8002
+REACT_APP_BACKEND_URL=http://localhost:8001
 
 # Google Maps JavaScript API Anahtarınız
 REACT_APP_GOOGLE_MAPS_API_KEY=AIzaSy...SIZIN_ANAHTARINIZ
@@ -114,9 +114,7 @@ npm start
 cd frontend
 npm start
 ```
-_(Frontend otomatik olarak tarayıcıda açılacaktır. Eğer 3000 portu doluysa gelen uyarıya 'Y' diyerek devam edin.)_
 
----
 
 ## 🔑 Demo Giriş Bilgileri
 
