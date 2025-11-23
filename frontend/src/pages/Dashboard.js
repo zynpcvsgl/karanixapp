@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Calendar, MapPin, Users, TrendingUp } from 'lucide-react';
 import { operationsAPI, vehiclesAPI } from '../services/api';
-import { format } from 'date-fns';
+import { format, addDays } from 'date-fns'; // addDays eklendi
 
 const Dashboard = () => {
   const [stats, setStats] = useState({
@@ -13,18 +13,19 @@ const Dashboard = () => {
   });
   const [loading, setLoading] = useState(true);
 
+  // Linkler için dinamik tarihler
+  const todayDate = format(new Date(), 'yyyy-MM-dd');
+  const tomorrowDate = format(addDays(new Date(), 1), 'yyyy-MM-dd');
+
   useEffect(() => {
     loadDashboardData();
   }, []);
 
   const loadDashboardData = async () => {
     try {
-      // Bugünün tarihini al
-      const today = format(new Date(), 'yyyy-MM-dd');
-
-      // Paralel olarak operasyonları ve araçları çek
+      // Paralel olarak bugünün operasyonlarını ve araçları çek
       const [opsResponse, vehiclesResponse] = await Promise.all([
-        operationsAPI.getOperations(today),
+        operationsAPI.getOperations(todayDate),
         vehiclesAPI.getVehicles()
       ]);
 
@@ -46,7 +47,7 @@ const Dashboard = () => {
 
       setStats({
         activeOperations: activeOps,
-        totalPax: totalPax, // veya totalCheckedIn gösterilebilir
+        totalPax: totalPax,
         activeVehicles: activeVehiclesCount,
         checkInRate: rate
       });
@@ -128,8 +129,10 @@ const Dashboard = () => {
       <div className="bg-white rounded-lg shadow p-6">
         <h2 className="text-xl font-semibold text-gray-900 mb-4">Hızlı İşlemler</h2>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          
+          {/* BUGÜNKÜ OPERASYONLAR LİNKİ - GÜNCELLENDİ */}
           <Link
-            to="/operations?filter=today"
+            to={`/operations?date=${todayDate}`}
             className="flex items-center p-4 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors"
             data-testid="view-today-operations"
           >
@@ -140,8 +143,9 @@ const Dashboard = () => {
             </div>
           </Link>
 
+          {/* YARINKİ OPERASYONLAR LİNKİ - GÜNCELLENDİ */}
           <Link
-            to="/operations?filter=tomorrow"
+            to={`/operations?date=${tomorrowDate}`}
             className="flex items-center p-4 bg-green-50 hover:bg-green-100 rounded-lg transition-colors"
             data-testid="view-tomorrow-operations"
           >
