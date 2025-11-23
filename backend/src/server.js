@@ -65,14 +65,19 @@ io.on('connection', (socket) => {
   });
 });
 
-// MongoDB Bağlantısı
+// MongoDB Bağlantısı (GÜNCELLENDİ)
+// .env'den gelen veya varsayılan bağlantı dizesini doğru formatta işler
 const MONGODB_URI = process.env.MONGO_URL 
-  ? `${process.env.MONGO_URL}/${process.env.DB_NAME || 'karanix_demo'}`
-  : 'mongodb://localhost:27017/karanix_demo';
+  ? (process.env.MONGO_URL.includes('?') 
+      ? process.env.MONGO_URL.replace('?', `/${process.env.DB_NAME || 'karanix'}?`) 
+      : `${process.env.MONGO_URL}/${process.env.DB_NAME || 'karanix'}`)
+  : 'mongodb+srv://zeynep:zeynep123@karanix.rwiuhri.mongodb.net/karanix?appName=karanix';
 
 mongoose.connect(MONGODB_URI)
   .then(() => {
-    console.log('✅ MongoDB Connected:', MONGODB_URI);
+    // Güvenlik için logda şifreyi gizle
+    const safeURI = MONGODB_URI.replace(/:([^:@]{1,})@/, ':****@');
+    console.log('✅ MongoDB Connected:', safeURI);
   })
   .catch((error) => {
     console.error('❌ MongoDB Connection Error:', error);
@@ -168,7 +173,7 @@ server.listen(PORT, () => {
   console.log('\n🚀 Karanix Backend Server');
   console.log(`📍 Server: http://localhost:${PORT}`);
   console.log(`📡 WebSocket: ws://localhost:${PORT}`);
-  console.log(`🗄️  MongoDB: ${MONGODB_URI}`);
+  console.log(`🗄️  MongoDB: ${MONGODB_URI.replace(/:([^:@]{1,})@/, ':****@')}`);
   console.log(`🌍 Environment: ${process.env.NODE_ENV || 'development'}\n`);
 });
 

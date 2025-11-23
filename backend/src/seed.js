@@ -10,8 +10,10 @@ const Passenger = require('./models/Passenger');
 const User = require('./models/User');
 
 const MONGODB_URI = process.env.MONGO_URL 
-  ? `${process.env.MONGO_URL}/${process.env.DB_NAME || 'karanix_demo'}`
-  : 'mongodb://localhost:27017/karanix_demo';
+  ? (process.env.MONGO_URL.includes('?') 
+      ? process.env.MONGO_URL.replace('?', `/${process.env.DB_NAME || 'karanix'}?`) 
+      : `${process.env.MONGO_URL}/${process.env.DB_NAME || 'karanix'}`)
+  : 'mongodb+srv://zeynep:zeynep123@karanix.rwiuhri.mongodb.net/karanix?appName=karanix';
 
 const istanbulLocations = [
   { name: 'Sultanahmet', lat: 41.0082, lng: 28.9784, address: 'Sultanahmet Meydanı, Fatih' },
@@ -21,14 +23,17 @@ const istanbulLocations = [
   { name: 'Ortaköy', lat: 41.0553, lng: 29.0266, address: 'Ortaköy Meydanı, Beşiktaş' },
   { name: 'Dolmabahçe Sarayı', lat: 41.0391, lng: 29.0003, address: 'Dolmabahçe Cd., Beşiktaş' },
   { name: 'Topkapı Sarayı', lat: 41.0115, lng: 28.9833, address: 'Topkapı Sarayı, Fatih' },
-  { name: 'Mısır Çarşısı', lat: 41.0166, lng: 28.9706, address: 'Mısır Çarşısı, Eminönü' }
+  { name: 'Mısır Çarşısı', lat: 41.0166, lng: 28.9706, address: 'Mısır Çarşısı, Eminönü' },
+  { name: 'Pierre Loti', lat: 41.0544, lng: 28.9343, address: 'Eyüpsultan, İstanbul' },
+  { name: 'Kız Kulesi', lat: 41.0211, lng: 29.0041, address: 'Üsküdar, İstanbul' }
 ];
 
 const turkishNames = [
   'Ahmet Yılmaz', 'Mehmet Kaya', 'Ayşe Demir', 'Fatma Şahin', 'Mustafa Çelik',
   'Emine Yıldız', 'Ali Aydın', 'Zeynep Öztürk', 'Hüseyin Arslan', 'Hatice Doğan',
   'İbrahim Kılıç', 'Elif Aslan', 'Hasan Çetin', 'Meryem Kara', 'Süleyman Koç',
-  'Rabia Şen', 'Osman Kurt', 'Rukiye Özdemir', 'Yusuf Özkan', 'Şule Güneş'
+  'Rabia Şen', 'Osman Kurt', 'Rukiye Özdemir', 'Yusuf Özkan', 'Şule Güneş',
+  'Burak Yılmaz', 'Ceren Yılmaz', 'Deniz Kaya', 'Eren Demir', 'Gizem Şahin'
 ];
 
 function getDateString(daysOffset = 0) {
@@ -39,6 +44,7 @@ function getDateString(daysOffset = 0) {
 
 async function seed() {
   try {
+    console.log('🔌 MongoDB\'ye bağlanılıyor:', MONGODB_URI.replace(/:([^:@]{1,})@/, ':****@'));
     await mongoose.connect(MONGODB_URI);
     console.log('✅ MongoDB bağlantısı başarılı');
 
@@ -94,6 +100,27 @@ async function seed() {
         email: 'bilgi@istanbuladventures.com',
         phone: '+90 212 555 0102',
         company: 'İstanbul Maceraları'
+      },
+      {
+        customer_id: uuidv4(),
+        name: 'Anadolu Turizm Seyahat Acentesi',
+        email: 'info@anadoluturizm.com',
+        phone: '+90 212 555 0103',
+        company: 'Anadolu Turizm'
+      },
+      {
+        customer_id: uuidv4(),
+        name: 'Boğaziçi VIP Transfer',
+        email: 'contact@bogazicivip.com',
+        phone: '+90 212 555 0104',
+        company: 'Boğaziçi VIP'
+      },
+      {
+        customer_id: uuidv4(),
+        name: 'Kapadokya Balon ve Tur',
+        email: 'rezervasyon@kapadokyatur.com',
+        phone: '+90 384 555 0105',
+        company: 'Kapadokya Tur'
       }
     ]);
     console.log(`✅ ${customers.length} müşteri oluşturuldu`);
@@ -125,16 +152,10 @@ async function seed() {
         vehicle_id: uuidv4(),
         plate_number: '34 ABC 123',
         model: 'Mercedes Sprinter',
-        capacity: 20,
+        capacity: 19,
         status: 'in_service',
         driver_id: 'user-003',
-        last_ping: {
-          lat: 41.0082,
-          lng: 28.9784,
-          heading: 90,
-          speed: 0,
-          timestamp: new Date()
-        }
+        last_ping: { lat: 41.0082, lng: 28.9784, heading: 90, speed: 25, timestamp: new Date() }
       },
       {
         vehicle_id: uuidv4(),
@@ -149,6 +170,21 @@ async function seed() {
         model: 'Ford Transit',
         capacity: 16,
         status: 'maintenance'
+      },
+      {
+        vehicle_id: uuidv4(),
+        plate_number: '34 JKL 012',
+        model: 'Volkswagen Crafter',
+        capacity: 19,
+        status: 'in_service',
+        last_ping: { lat: 41.0553, lng: 29.0266, heading: 180, speed: 40, timestamp: new Date() }
+      },
+      {
+        vehicle_id: uuidv4(),
+        plate_number: '34 MNO 345',
+        model: 'Mercedes Vito (VIP)',
+        capacity: 8,
+        status: 'available'
       }
     ]);
     console.log(`✅ ${vehicles.length} araç oluşturuldu`);
@@ -156,6 +192,7 @@ async function seed() {
     console.log('📋 Operasyonlar oluşturuluyor...');
     const today = getDateString(0);
     const tomorrow = getDateString(1);
+    const threeDaysLater = getDateString(3);
     
     const operations = await Operation.create([
       {
@@ -168,7 +205,7 @@ async function seed() {
         driver_id: 'user-003',
         guide_id: 'user-002',
         total_pax: 15,
-        checked_in_count: 3,
+        checked_in_count: 12,
         status: 'active',
         route: [
           { lat: 41.0369, lng: 28.9850 },
@@ -197,6 +234,22 @@ async function seed() {
       {
         id: uuidv4(),
         code: `OPS-${Date.now()}-3`,
+        tour_name: 'Haliç ve Pierre Loti Turu',
+        date: today,
+        start_time: '11:00',
+        vehicle_id: vehicles[3].vehicle_id,
+        driver_id: 'user-003',
+        guide_id: 'user-002',
+        total_pax: 18,
+        checked_in_count: 3,
+        status: 'active',
+        route: [
+          { lat: 41.0544, lng: 28.9343 }
+        ]
+      },
+      {
+        id: uuidv4(),
+        code: `OPS-${Date.now()}-4`,
         tour_name: 'Anadolu Yakası Keşfi',
         date: tomorrow,
         start_time: '09:30',
@@ -207,9 +260,37 @@ async function seed() {
         checked_in_count: 0,
         status: 'planned',
         route: []
+      },
+      {
+        id: uuidv4(),
+        code: `OPS-${Date.now()}-5`,
+        tour_name: 'Prens Adaları Tekne Turu',
+        date: tomorrow,
+        start_time: '10:00',
+        vehicle_id: vehicles[4].vehicle_id,
+        driver_id: 'user-003',
+        guide_id: 'user-002',
+        total_pax: 8,
+        checked_in_count: 0,
+        status: 'planned',
+        route: []
+      },
+      {
+        id: uuidv4(),
+        code: `OPS-${Date.now()}-6`,
+        tour_name: 'Bursa Uludağ Günübirlik',
+        date: threeDaysLater,
+        start_time: '07:00',
+        vehicle_id: vehicles[0].vehicle_id,
+        driver_id: 'user-003',
+        guide_id: 'user-002',
+        total_pax: 19,
+        checked_in_count: 0,
+        status: 'planned',
+        route: []
       }
     ]);
-    console.log(`✅ ${operations.length} operasyon oluşturuldu`);
+    console.log(`✅ ${operations.length} operasyon oluşturuldu (Bugün, Yarın ve 3 Gün Sonra)`);
 
     console.log('👥 Yolcular oluşturuluyor...');
     let totalPax = 0;
@@ -225,7 +306,7 @@ async function seed() {
         passengers.push({
           pax_id: uuidv4(),
           operation_id: operation.id,
-          name: turkishNames[i % turkishNames.length],
+          name: turkishNames[(i + totalPax) % turkishNames.length],
           phone: `+90 5${Math.floor(Math.random() * 100000000).toString().padStart(9, '0')}`,
           pickup_point: {
             lat: location.lat,

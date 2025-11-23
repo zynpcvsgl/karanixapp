@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { Calendar, Users, Clock, ChevronRight, Plus, Truck } from 'lucide-react';
-import { operationsAPI, vehiclesAPI } from '../services/api'; // vehiclesAPI eklendi
-import { format, addDays } from 'date-fns';
+import { Calendar, Users, Clock, ChevronRight, Plus, Filter } from 'lucide-react';
+import { operationsAPI, vehiclesAPI } from '../services/api';
+import { format, addDays, parseISO } from 'date-fns';
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -19,9 +19,13 @@ import {
 const OperationList = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const [operations, setOperations] = useState([]);
-  const [vehicles, setVehicles] = useState([]); // Araç listesi için state
+  const [vehicles, setVehicles] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState(searchParams.get('filter') || 'today');
+  
+  // FİLTRELEME STATE'İ (GÜNCELLENDİ)
+  // URL'den 'date' parametresini al, yoksa bugünü varsayılan yap
+  const initialDate = searchParams.get('date') || format(new Date(), 'yyyy-MM-dd');
+  const [selectedDate, setSelectedDate] = useState(initialDate);
   
   // Modal state'leri
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -30,25 +34,22 @@ const OperationList = () => {
     date: format(new Date(), 'yyyy-MM-dd'),
     start_time: '09:00',
     total_pax: 15,
-    vehicle_id: '' // Araç seçimi için alan
+    vehicle_id: ''
   });
 
+  // Tarih değiştiğinde operasyonları yükle
   useEffect(() => {
     loadOperations();
-    loadVehicles(); // Sayfa yüklenince araçları da çek
-  }, [filter]);
+    loadVehicles();
+    // URL'i güncelle
+    setSearchParams({ date: selectedDate });
+  }, [selectedDate]);
 
   const loadOperations = async () => {
     setLoading(true);
     try {
-      const today = new Date();
-      const tomorrow = addDays(today, 1);
-      
-      const date = filter === 'today' 
-        ? format(today, 'yyyy-MM-dd') 
-        : format(tomorrow, 'yyyy-MM-dd');
-      
-      const response = await operationsAPI.getOperations(date);
+      // Seçili tarihe göre istek at
+      const response = await operationsAPI.getOperations(selectedDate);
       setOperations(response.data || []);
     } catch (error) {
       console.error('Operasyonlar yüklenirken hata:', error);
@@ -58,7 +59,6 @@ const OperationList = () => {
     }
   };
 
-  // Araçları yükleyen fonksiyon
   const loadVehicles = async () => {
     try {
       const response = await vehiclesAPI.getVehicles();
@@ -74,6 +74,14 @@ const OperationList = () => {
       await operationsAPI.createOperation(newOp);
       setIsDialogOpen(false);
       
+      // Eğer oluşturulan operasyonun tarihi, şu an görüntülenen tarih ile aynıysa listeyi yenile
+      if (newOp.date === selectedDate) {
+        loadOperations();
+      } else {
+        // Değilse o tarihe git
+        setSelectedDate(newOp.date);
+      }
+
       setNewOp({
         tour_name: '',
         date: format(new Date(), 'yyyy-MM-dd'),
@@ -82,7 +90,6 @@ const OperationList = () => {
         vehicle_id: ''
       });
       
-      loadOperations();
       alert('Operasyon başarıyla oluşturuldu!');
     } catch (error) {
       console.error('Operasyon oluşturma hatası:', error);
@@ -90,9 +97,18 @@ const OperationList = () => {
     }
   };
 
-  const handleFilterChange = (newFilter) => {
-    setFilter(newFilter);
-    setSearchParams({ filter: newFilter });
+  // Kısayol butonları için yardımcı fonksiyon
+  const setQuickDate = (type) => {
+    const today = new Date();
+    let targetDate = '';
+    
+    if (type === 'today') {
+      targetDate = format(today, 'yyyy-MM-dd');
+    } else if (type === 'tomorrow') {
+      targetDate = format(addDays(today, 1), 'yyyy-MM-dd');
+    }
+    
+    setSelectedDate(targetDate);
   };
 
   const getStatusColor = (status) => {
@@ -112,7 +128,7 @@ const OperationList = () => {
 
   return (
     <div className="space-y-6" data-testid="operation-list-page">
-      <div className="flex justify-between items-center">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">Operasyonlar</h1>
           <p className="text-gray-600 mt-2">Tüm operasyonları yönetin ve takip edin</p>
@@ -130,8 +146,6 @@ const OperationList = () => {
               <DialogTitle>Yeni Operasyon Planla</DialogTitle>
             </DialogHeader>
             <form onSubmit={handleCreate} className="grid gap-4 py-4">
-              
-              {/* Tur Adı */}
               <div className="grid gap-2">
                 <Label htmlFor="tour_name">Tur Adı</Label>
                 <Input 
@@ -142,8 +156,6 @@ const OperationList = () => {
                   required 
                 />
               </div>
-
-              {/* Tarih ve Saat */}
               <div className="grid grid-cols-2 gap-4">
                 <div className="grid gap-2">
                   <Label htmlFor="date">Tarih</Label>
@@ -166,8 +178,6 @@ const OperationList = () => {
                   />
                 </div>
               </div>
-
-              {/* Yolcu Sayısı */}
               <div className="grid gap-2">
                 <Label htmlFor="total_pax">Tahmini Yolcu Sayısı</Label>
                 <Input 
@@ -179,8 +189,6 @@ const OperationList = () => {
                   required 
                 />
               </div>
-
-              {/* Araç Seçimi Dropdown */}
               <div className="grid gap-2">
                 <Label htmlFor="vehicle">Atanacak Araç</Label>
                 <select
@@ -197,7 +205,6 @@ const OperationList = () => {
                   ))}
                 </select>
               </div>
-
               <DialogFooter>
                 <Button type="submit" className="bg-blue-600 text-white">Oluştur</Button>
               </DialogFooter>
@@ -206,25 +213,49 @@ const OperationList = () => {
         </Dialog>
       </div>
 
-      <div className="bg-white rounded-lg shadow p-2 inline-flex space-x-2" data-testid="operation-filter">
-        <button
-          onClick={() => handleFilterChange('today')}
-          className={`px-6 py-2 rounded-md font-medium transition-colors ${
-            filter === 'today' ? 'bg-blue-600 text-white' : 'text-gray-700 hover:bg-gray-100'
-          }`}
-        >
-          Bugün
-        </button>
-        <button
-          onClick={() => handleFilterChange('tomorrow')}
-          className={`px-6 py-2 rounded-md font-medium transition-colors ${
-            filter === 'tomorrow' ? 'bg-blue-600 text-white' : 'text-gray-700 hover:bg-gray-100'
-          }`}
-        >
-          Yarın
-        </button>
+      {/* GELİŞMİŞ FİLTRELEME ALANI */}
+      <div className="bg-white rounded-lg shadow p-4 flex flex-wrap items-center gap-4" data-testid="operation-filter">
+        <div className="flex items-center space-x-2">
+          <Filter className="h-5 w-5 text-gray-500" />
+          <span className="font-medium text-gray-700">Tarih Filtresi:</span>
+        </div>
+        
+        {/* Kısayol Butonları */}
+        <div className="flex space-x-2">
+          <button
+            onClick={() => setQuickDate('today')}
+            className={`px-4 py-2 rounded-md font-medium transition-colors text-sm ${
+              selectedDate === format(new Date(), 'yyyy-MM-dd')
+                ? 'bg-blue-100 text-blue-700 border border-blue-200'
+                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+            }`}
+          >
+            Bugün
+          </button>
+          <button
+            onClick={() => setQuickDate('tomorrow')}
+            className={`px-4 py-2 rounded-md font-medium transition-colors text-sm ${
+              selectedDate === format(addDays(new Date(), 1), 'yyyy-MM-dd')
+                ? 'bg-blue-100 text-blue-700 border border-blue-200'
+                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+            }`}
+          >
+            Yarın
+          </button>
+        </div>
+
+        {/* Manuel Tarih Seçici */}
+        <div className="flex-1 max-w-xs">
+          <Input 
+            type="date" 
+            value={selectedDate}
+            onChange={(e) => setSelectedDate(e.target.value)}
+            className="bg-white"
+          />
+        </div>
       </div>
 
+      {/* Operasyon Listesi */}
       {loading ? (
         <div className="bg-white rounded-lg shadow p-8 text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
@@ -235,7 +266,7 @@ const OperationList = () => {
           <Calendar className="h-16 w-16 text-gray-400 mx-auto mb-4" />
           <h3 className="text-lg font-semibold text-gray-900 mb-2">Operasyon bulunamadı</h3>
           <p className="text-gray-600">
-            {filter === 'today' ? 'Bugün' : 'Yarın'} için planlanmış operasyon yok.
+            {selectedDate} tarihinde planlanmış operasyon yok.
           </p>
         </div>
       ) : (
