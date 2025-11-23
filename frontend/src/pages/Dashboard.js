@@ -1,8 +1,63 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Calendar, MapPin, Users, TrendingUp } from 'lucide-react';
+import { operationsAPI, vehiclesAPI } from '../services/api';
+import { format } from 'date-fns';
 
 const Dashboard = () => {
+  const [stats, setStats] = useState({
+    activeOperations: 0,
+    totalPax: 0,
+    activeVehicles: 0,
+    checkInRate: 0
+  });
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    loadDashboardData();
+  }, []);
+
+  const loadDashboardData = async () => {
+    try {
+      // Bugünün tarihini al
+      const today = format(new Date(), 'yyyy-MM-dd');
+
+      // Paralel olarak operasyonları ve araçları çek
+      const [opsResponse, vehiclesResponse] = await Promise.all([
+        operationsAPI.getOperations(today),
+        vehiclesAPI.getVehicles()
+      ]);
+
+      const operations = opsResponse.data || [];
+      const vehicles = vehiclesResponse.data || [];
+
+      // İstatistikleri hesapla
+      const activeOps = operations.filter(op => op.status === 'active').length;
+      
+      // Toplam yolcu ve check-in sayısı (Bugünkü operasyonlardan)
+      const totalPax = operations.reduce((sum, op) => sum + (op.total_pax || 0), 0);
+      const totalCheckedIn = operations.reduce((sum, op) => sum + (op.checked_in_count || 0), 0);
+      
+      // Check-in oranı
+      const rate = totalPax > 0 ? Math.round((totalCheckedIn / totalPax) * 100) : 0;
+
+      // Aktif araçlar (status: 'in_service')
+      const activeVehiclesCount = vehicles.filter(v => v.status === 'in_service').length;
+
+      setStats({
+        activeOperations: activeOps,
+        totalPax: totalPax, // veya totalCheckedIn gösterilebilir
+        activeVehicles: activeVehiclesCount,
+        checkInRate: rate
+      });
+
+    } catch (error) {
+      console.error('Dashboard verileri yüklenirken hata:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="space-y-6" data-testid="dashboard-page">
       <div>
@@ -16,7 +71,9 @@ const Dashboard = () => {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-gray-600">Aktif Operasyonlar</p>
-              <p className="text-3xl font-bold text-gray-900 mt-2">2</p>
+              <p className="text-3xl font-bold text-gray-900 mt-2">
+                {loading ? '-' : stats.activeOperations}
+              </p>
             </div>
             <div className="bg-blue-100 p-3 rounded-full">
               <Calendar className="h-6 w-6 text-blue-600" />
@@ -27,8 +84,10 @@ const Dashboard = () => {
         <div className="bg-white rounded-lg shadow p-6 border-l-4 border-green-500">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-600">Toplam Yolcu</p>
-              <p className="text-3xl font-bold text-gray-900 mt-2">13</p>
+              <p className="text-sm font-medium text-gray-600">Toplam Yolcu (Bugün)</p>
+              <p className="text-3xl font-bold text-gray-900 mt-2">
+                {loading ? '-' : stats.totalPax}
+              </p>
             </div>
             <div className="bg-green-100 p-3 rounded-full">
               <Users className="h-6 w-6 text-green-600" />
@@ -39,8 +98,10 @@ const Dashboard = () => {
         <div className="bg-white rounded-lg shadow p-6 border-l-4 border-purple-500">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-600">Aktif Araçlar</p>
-              <p className="text-3xl font-bold text-gray-900 mt-2">3</p>
+              <p className="text-sm font-medium text-gray-600">Hizmetteki Araçlar</p>
+              <p className="text-3xl font-bold text-gray-900 mt-2">
+                {loading ? '-' : stats.activeVehicles}
+              </p>
             </div>
             <div className="bg-purple-100 p-3 rounded-full">
               <MapPin className="h-6 w-6 text-purple-600" />
@@ -52,7 +113,9 @@ const Dashboard = () => {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-gray-600">Check-in Oranı</p>
-              <p className="text-3xl font-bold text-gray-900 mt-2">%50</p>
+              <p className="text-3xl font-bold text-gray-900 mt-2">
+                {loading ? '-' : `%${stats.checkInRate}`}
+              </p>
             </div>
             <div className="bg-orange-100 p-3 rounded-full">
               <TrendingUp className="h-6 w-6 text-orange-600" />

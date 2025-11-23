@@ -13,14 +13,8 @@ router.get('/', optionalAuth, async (req, res) => {
     const { date, status } = req.query;
     
     let filter = {};
-    
-    if (date) {
-      filter.date = date;
-    }
-    
-    if (status) {
-      filter.status = status;
-    }
+    if (date) filter.date = date;
+    if (status) filter.status = status;
     
     const operations = await Operation.find(filter)
       .sort({ date: 1, start_time: 1 });
@@ -36,7 +30,7 @@ router.get('/', optionalAuth, async (req, res) => {
   }
 });
 
-// GET /api/operations/:id - Get operation detail with passengers
+// GET /api/operations/:id
 router.get('/:id', optionalAuth, async (req, res) => {
   try {
     const operation = await Operation.findOne({ id: req.params.id });
@@ -45,10 +39,7 @@ router.get('/:id', optionalAuth, async (req, res) => {
       return res.status(404).json({ error: 'Operation not found' });
     }
     
-    // Get passengers for this operation
     const passengers = await Passenger.find({ operation_id: operation.id });
-    
-    // Get vehicle info
     const vehicle = await Vehicle.findOne({ vehicle_id: operation.vehicle_id });
     
     res.json({
@@ -65,7 +56,7 @@ router.get('/:id', optionalAuth, async (req, res) => {
   }
 });
 
-// POST /api/operations/:id/start - Start an operation
+// POST /api/operations/:id/start
 router.post('/:id/start', optionalAuth, async (req, res) => {
   try {
     const operation = await Operation.findOne({ id: req.params.id });
@@ -78,12 +69,10 @@ router.post('/:id/start', optionalAuth, async (req, res) => {
       return res.status(400).json({ error: 'Operation already started' });
     }
     
-    // Update operation status
     operation.status = 'active';
     operation.updated_at = new Date();
     await operation.save();
     
-    // Create event log
     const eventLog = new EventLog({
       event_id: uuidv4(),
       event_type: 'operation_start',
@@ -94,7 +83,6 @@ router.post('/:id/start', optionalAuth, async (req, res) => {
     });
     await eventLog.save();
     
-    // Broadcast via WebSocket
     const io = req.app.get('io');
     io.to(`operation:${operation.id}`).emit('operation_started', {
       operation_id: operation.id,
@@ -114,20 +102,28 @@ router.post('/:id/start', optionalAuth, async (req, res) => {
   }
 });
 
-// POST /api/operations - Create new operation
+// POST /api/operations - Create new operation (ARAÇ SEÇİMİ EKLENDİ)
 router.post('/', optionalAuth, async (req, res) => {
   try {
-    const operationData = {
+    // vehicle_id parametresini de alıyoruz
+    const { tour_name, date, start_time, total_pax, vehicle_id } = req.body;
+
+    const newOperation = await Operation.create({
       id: uuidv4(),
-      ...req.body
-    };
-    
-    const operation = new Operation(operationData);
-    await operation.save();
+      code: `OPS-${Date.now().toString().slice(-6)}`,
+      tour_name,
+      date,
+      start_time,
+      total_pax: parseInt(total_pax) || 10,
+      vehicle_id: vehicle_id || null, // Araç seçildiyse kaydet
+      checked_in_count: 0,
+      status: 'planned',
+      route: []
+    });
     
     res.status(201).json({
       success: true,
-      data: operation
+      data: newOperation
     });
   } catch (error) {
     console.error('Error creating operation:', error);

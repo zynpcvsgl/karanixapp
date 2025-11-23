@@ -3,7 +3,7 @@ import axios from 'axios';
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8001';
 const API = `${BACKEND_URL}/api`;
 
-// Axios instance oluştur (Daha yönetilebilir yapı için)
+// Axios instance oluştur
 const axiosInstance = axios.create({
   baseURL: API,
 });
@@ -55,6 +55,12 @@ export const operationsAPI = {
   startOperation: async (id) => {
     const response = await axiosInstance.post(`/operations/${id}/start`);
     return response.data;
+  },
+
+  // EKLENEN FONKSİYON
+  createOperation: async (data) => {
+    const response = await axiosInstance.post('/operations', data);
+    return response.data;
   }
 };
 
@@ -69,7 +75,6 @@ export const vehiclesAPI = {
     return response.data;
   },
 
-  // EKLENDİ: Yeni araç oluşturma
   createVehicle: async (data) => {
     const response = await axiosInstance.post('/vehicles', data);
     return response.data;
@@ -89,7 +94,6 @@ export const passengersAPI = {
   }
 };
 
-// EKLENDİ: Müşteri Yönetimi API'leri
 export const customersAPI = {
   getCustomers: async () => {
     const response = await axiosInstance.get('/customers');
@@ -112,5 +116,5 @@ export default {
   operations: operationsAPI,
   vehicles: vehiclesAPI,
   passengers: passengersAPI,
-  customers: customersAPI // Eklendi
+  customers: customersAPI
 };

@@ -1,17 +1,41 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { Calendar, Users, Clock, ChevronRight } from 'lucide-react';
-import { operationsAPI } from '../services/api';
+import { Calendar, Users, Clock, ChevronRight, Plus, Truck } from 'lucide-react';
+import { operationsAPI, vehiclesAPI } from '../services/api'; // vehiclesAPI eklendi
 import { format, addDays } from 'date-fns';
+
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+  DialogFooter,
+} from "@/components/ui/dialog";
 
 const OperationList = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const [operations, setOperations] = useState([]);
+  const [vehicles, setVehicles] = useState([]); // Araç listesi için state
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState(searchParams.get('filter') || 'today');
+  
+  // Modal state'leri
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [newOp, setNewOp] = useState({
+    tour_name: '',
+    date: format(new Date(), 'yyyy-MM-dd'),
+    start_time: '09:00',
+    total_pax: 15,
+    vehicle_id: '' // Araç seçimi için alan
+  });
 
   useEffect(() => {
     loadOperations();
+    loadVehicles(); // Sayfa yüklenince araçları da çek
   }, [filter]);
 
   const loadOperations = async () => {
@@ -20,7 +44,6 @@ const OperationList = () => {
       const today = new Date();
       const tomorrow = addDays(today, 1);
       
-      // Backend API tarih formatını (YYYY-MM-DD) bekliyor
       const date = filter === 'today' 
         ? format(today, 'yyyy-MM-dd') 
         : format(tomorrow, 'yyyy-MM-dd');
@@ -35,6 +58,38 @@ const OperationList = () => {
     }
   };
 
+  // Araçları yükleyen fonksiyon
+  const loadVehicles = async () => {
+    try {
+      const response = await vehiclesAPI.getVehicles();
+      setVehicles(response.data || []);
+    } catch (error) {
+      console.error('Araçlar yüklenirken hata:', error);
+    }
+  };
+
+  const handleCreate = async (e) => {
+    e.preventDefault();
+    try {
+      await operationsAPI.createOperation(newOp);
+      setIsDialogOpen(false);
+      
+      setNewOp({
+        tour_name: '',
+        date: format(new Date(), 'yyyy-MM-dd'),
+        start_time: '09:00',
+        total_pax: 15,
+        vehicle_id: ''
+      });
+      
+      loadOperations();
+      alert('Operasyon başarıyla oluşturuldu!');
+    } catch (error) {
+      console.error('Operasyon oluşturma hatası:', error);
+      alert('Operasyon oluşturulamadı.');
+    }
+  };
+
   const handleFilterChange = (newFilter) => {
     setFilter(newFilter);
     setSearchParams({ filter: newFilter });
@@ -42,72 +97,141 @@ const OperationList = () => {
 
   const getStatusColor = (status) => {
     switch (status) {
-      case 'active':
-        return 'bg-green-100 text-green-800';
-      case 'planned':
-        return 'bg-blue-100 text-blue-800';
-      case 'completed':
-        return 'bg-gray-100 text-gray-800';
-      case 'cancelled':
-        return 'bg-red-100 text-red-800';
-      default:
-        return 'bg-gray-100 text-gray-800';
+      case 'active': return 'bg-green-100 text-green-800';
+      case 'planned': return 'bg-blue-100 text-blue-800';
+      case 'completed': return 'bg-gray-100 text-gray-800';
+      case 'cancelled': return 'bg-red-100 text-red-800';
+      default: return 'bg-gray-100 text-gray-800';
     }
   };
 
-  // Durumları Türkçeye çeviren yardımcı fonksiyon
   const getStatusText = (status) => {
-    const statuses = {
-      'active': 'AKTİF',
-      'planned': 'PLANLANDI',
-      'completed': 'TAMAMLANDI',
-      'cancelled': 'İPTAL'
-    };
+    const statuses = { 'active': 'AKTİF', 'planned': 'PLANLANDI', 'completed': 'TAMAMLANDI', 'cancelled': 'İPTAL' };
     return statuses[status] || status.toUpperCase();
   };
 
   return (
     <div className="space-y-6" data-testid="operation-list-page">
-      {/* Başlık */}
-      <div>
-        <h1 className="text-3xl font-bold text-gray-900">Operasyonlar</h1>
-        <p className="text-gray-600 mt-2">Tüm operasyonları yönetin ve takip edin</p>
+      <div className="flex justify-between items-center">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900">Operasyonlar</h1>
+          <p className="text-gray-600 mt-2">Tüm operasyonları yönetin ve takip edin</p>
+        </div>
+
+        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+          <DialogTrigger asChild>
+            <Button className="bg-blue-600 hover:bg-blue-700 text-white">
+              <Plus className="h-4 w-4 mr-2" />
+              Yeni Operasyon
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="sm:max-w-[425px]">
+            <DialogHeader>
+              <DialogTitle>Yeni Operasyon Planla</DialogTitle>
+            </DialogHeader>
+            <form onSubmit={handleCreate} className="grid gap-4 py-4">
+              
+              {/* Tur Adı */}
+              <div className="grid gap-2">
+                <Label htmlFor="tour_name">Tur Adı</Label>
+                <Input 
+                  id="tour_name" 
+                  value={newOp.tour_name}
+                  onChange={(e) => setNewOp({...newOp, tour_name: e.target.value})}
+                  placeholder="Örn: Boğaz Turu"
+                  required 
+                />
+              </div>
+
+              {/* Tarih ve Saat */}
+              <div className="grid grid-cols-2 gap-4">
+                <div className="grid gap-2">
+                  <Label htmlFor="date">Tarih</Label>
+                  <Input 
+                    id="date" 
+                    type="date"
+                    value={newOp.date}
+                    onChange={(e) => setNewOp({...newOp, date: e.target.value})}
+                    required 
+                  />
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="start_time">Saat</Label>
+                  <Input 
+                    id="start_time" 
+                    type="time"
+                    value={newOp.start_time}
+                    onChange={(e) => setNewOp({...newOp, start_time: e.target.value})}
+                    required 
+                  />
+                </div>
+              </div>
+
+              {/* Yolcu Sayısı */}
+              <div className="grid gap-2">
+                <Label htmlFor="total_pax">Tahmini Yolcu Sayısı</Label>
+                <Input 
+                  id="total_pax" 
+                  type="number"
+                  min="1"
+                  value={newOp.total_pax}
+                  onChange={(e) => setNewOp({...newOp, total_pax: e.target.value})}
+                  required 
+                />
+              </div>
+
+              {/* Araç Seçimi Dropdown */}
+              <div className="grid gap-2">
+                <Label htmlFor="vehicle">Atanacak Araç</Label>
+                <select
+                  id="vehicle"
+                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                  value={newOp.vehicle_id}
+                  onChange={(e) => setNewOp({...newOp, vehicle_id: e.target.value})}
+                >
+                  <option value="">Araç Seçiniz (Opsiyonel)</option>
+                  {vehicles.map((v) => (
+                    <option key={v.vehicle_id} value={v.vehicle_id}>
+                      {v.plate_number} - {v.model} ({v.capacity} Pax)
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <DialogFooter>
+                <Button type="submit" className="bg-blue-600 text-white">Oluştur</Button>
+              </DialogFooter>
+            </form>
+          </DialogContent>
+        </Dialog>
       </div>
 
-      {/* Filtre Butonları */}
       <div className="bg-white rounded-lg shadow p-2 inline-flex space-x-2" data-testid="operation-filter">
         <button
           onClick={() => handleFilterChange('today')}
           className={`px-6 py-2 rounded-md font-medium transition-colors ${
-            filter === 'today'
-              ? 'bg-blue-600 text-white'
-              : 'text-gray-700 hover:bg-gray-100'
+            filter === 'today' ? 'bg-blue-600 text-white' : 'text-gray-700 hover:bg-gray-100'
           }`}
-          data-testid="filter-today"
         >
           Bugün
         </button>
         <button
           onClick={() => handleFilterChange('tomorrow')}
           className={`px-6 py-2 rounded-md font-medium transition-colors ${
-            filter === 'tomorrow'
-              ? 'bg-blue-600 text-white'
-              : 'text-gray-700 hover:bg-gray-100'
+            filter === 'tomorrow' ? 'bg-blue-600 text-white' : 'text-gray-700 hover:bg-gray-100'
           }`}
-          data-testid="filter-tomorrow"
         >
           Yarın
         </button>
       </div>
 
-      {/* Operasyon Listesi */}
       {loading ? (
-        <div className="bg-white rounded-lg shadow p-8 text-center" data-testid="loading-state">
+        <div className="bg-white rounded-lg shadow p-8 text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
           <p className="text-gray-600 mt-4">Operasyonlar yükleniyor...</p>
         </div>
       ) : operations.length === 0 ? (
-        <div className="bg-white rounded-lg shadow p-8 text-center" data-testid="empty-state">
+        <div className="bg-white rounded-lg shadow p-8 text-center">
           <Calendar className="h-16 w-16 text-gray-400 mx-auto mb-4" />
           <h3 className="text-lg font-semibold text-gray-900 mb-2">Operasyon bulunamadı</h3>
           <p className="text-gray-600">
@@ -115,49 +239,37 @@ const OperationList = () => {
           </p>
         </div>
       ) : (
-        <div className="grid gap-4" data-testid="operations-grid">
+        <div className="grid gap-4">
           {operations.map((operation) => (
             <Link
               key={operation.id}
               to={`/operations/${operation.id}`}
               className="bg-white rounded-lg shadow hover:shadow-lg transition-shadow p-6 border border-gray-200 hover:border-blue-300"
-              data-testid={`operation-card-${operation.code}`}
             >
               <div className="flex items-start justify-between">
                 <div className="flex-1">
                   <div className="flex items-center space-x-3 mb-2">
-                    <span className="text-sm font-mono font-semibold text-gray-500">
-                      {operation.code}
-                    </span>
+                    <span className="text-sm font-mono font-semibold text-gray-500">{operation.code}</span>
                     <span className={`px-3 py-1 rounded-full text-xs font-semibold ${getStatusColor(operation.status)}`}>
                       {getStatusText(operation.status)}
                     </span>
                   </div>
-                  
-                  <h3 className="text-xl font-bold text-gray-900 mb-2">
-                    {operation.tour_name}
-                  </h3>
-                  
+                  <h3 className="text-xl font-bold text-gray-900 mb-2">{operation.tour_name}</h3>
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
                     <div className="flex items-center text-gray-600">
                       <Calendar className="h-4 w-4 mr-2" />
                       <span className="text-sm">{operation.date}</span>
                     </div>
-                    
                     <div className="flex items-center text-gray-600">
                       <Clock className="h-4 w-4 mr-2" />
                       <span className="text-sm">{operation.start_time}</span>
                     </div>
-                    
                     <div className="flex items-center text-gray-600">
                       <Users className="h-4 w-4 mr-2" />
-                      <span className="text-sm">
-                        {operation.checked_in_count} / {operation.total_pax} Check-in
-                      </span>
+                      <span className="text-sm">{operation.checked_in_count} / {operation.total_pax} Check-in</span>
                     </div>
                   </div>
                   
-                  {/* İlerleme Çubuğu */}
                   <div className="mt-4">
                     <div className="w-full bg-gray-200 rounded-full h-2">
                       <div
@@ -169,7 +281,6 @@ const OperationList = () => {
                     </div>
                   </div>
                 </div>
-                
                 <ChevronRight className="h-6 w-6 text-gray-400 ml-4" />
               </div>
             </Link>
