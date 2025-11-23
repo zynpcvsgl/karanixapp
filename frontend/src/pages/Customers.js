@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Plus, Trash2, User, Building, Phone, Mail } from 'lucide-react';
 import { customersAPI } from '../services/api';
-import { useToast } from "@/hooks/use-toast"; // Toast hook'u eklendi
+import { useToast } from "@/hooks/use-toast"; // Toast eklendi
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -33,7 +33,8 @@ const Customers = () => {
     phone: ''
   });
 
-  const { toast } = useToast(); // Toast fonksiyonunu çağır
+  // Toast hook'unu çağırıyoruz
+  const { toast } = useToast();
 
   useEffect(() => {
     loadCustomers();
@@ -45,7 +46,7 @@ const Customers = () => {
       const response = await customersAPI.getCustomers();
       setCustomers(response.data || []);
     } catch (error) {
-      console.error('Müşteriler yüklenirken hata oluştu:', error);
+      console.error('Hata:', error);
       toast({
         title: "Hata",
         description: "Müşteri listesi yüklenemedi.",
@@ -67,7 +68,7 @@ const Customers = () => {
       // Listeyi yenile
       await loadCustomers(); 
       
-      // Başarı Mesajı
+      // Başarı Bildirimi (Toast)
       toast({
         title: "Başarılı",
         description: "Müşteri başarıyla eklendi!",
@@ -75,8 +76,8 @@ const Customers = () => {
       });
 
     } catch (error) {
-      console.error('Müşteri oluşturma hatası:', error);
-      // Hata Mesajı
+      console.error('Hata:', error);
+      // Hata Bildirimi (Toast)
       toast({
         title: "Hata",
         description: "Müşteri oluşturulamadı. Lütfen tekrar deneyin.",
@@ -97,7 +98,7 @@ const Customers = () => {
         });
 
       } catch (error) {
-        console.error('Error deleting customer:', error);
+        console.error('Hata:', error);
         toast({
           title: "Hata",
           description: "Silme işlemi sırasında bir sorun oluştu.",
