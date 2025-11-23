@@ -2,7 +2,6 @@ require('dotenv').config();
 const mongoose = require('mongoose');
 const { v4: uuidv4 } = require('uuid');
 
-// Models
 const Customer = require('./models/Customer');
 const Location = require('./models/Location');
 const Vehicle = require('./models/Vehicle');
@@ -10,21 +9,19 @@ const Operation = require('./models/Operation');
 const Passenger = require('./models/Passenger');
 const User = require('./models/User');
 
-// MongoDB URI
 const MONGODB_URI = process.env.MONGO_URL 
   ? `${process.env.MONGO_URL}/${process.env.DB_NAME || 'karanix_demo'}`
   : 'mongodb://localhost:27017/karanix_demo';
 
-// Istanbul lokasyonları
 const istanbulLocations = [
   { name: 'Sultanahmet', lat: 41.0082, lng: 28.9784, address: 'Sultanahmet Meydanı, Fatih' },
   { name: 'Taksim', lat: 41.0369, lng: 28.9850, address: 'Taksim Meydanı, Beyoğlu' },
-  { name: 'Galata Tower', lat: 41.0256, lng: 28.9744, address: 'Galata Kulesi, Beyoğlu' },
-  { name: 'Grand Bazaar', lat: 41.0106, lng: 28.9680, address: 'Kapalıçarşı, Fatih' },
+  { name: 'Galata Kulesi', lat: 41.0256, lng: 28.9744, address: 'Galata Kulesi, Beyoğlu' },
+  { name: 'Kapalıçarşı', lat: 41.0106, lng: 28.9680, address: 'Kapalıçarşı, Fatih' },
   { name: 'Ortaköy', lat: 41.0553, lng: 29.0266, address: 'Ortaköy Meydanı, Beşiktaş' },
-  { name: 'Dolmabahçe Palace', lat: 41.0391, lng: 29.0003, address: 'Dolmabahçe Cd., Beşiktaş' },
-  { name: 'Topkapı Palace', lat: 41.0115, lng: 28.9833, address: 'Topkapı Sarayı, Fatih' },
-  { name: 'Spice Bazaar', lat: 41.0166, lng: 28.9706, address: 'Mısır Çarşısı, Eminönü' }
+  { name: 'Dolmabahçe Sarayı', lat: 41.0391, lng: 29.0003, address: 'Dolmabahçe Cd., Beşiktaş' },
+  { name: 'Topkapı Sarayı', lat: 41.0115, lng: 28.9833, address: 'Topkapı Sarayı, Fatih' },
+  { name: 'Mısır Çarşısı', lat: 41.0166, lng: 28.9706, address: 'Mısır Çarşısı, Eminönü' }
 ];
 
 const turkishNames = [
@@ -34,7 +31,6 @@ const turkishNames = [
   'Rabia Şen', 'Osman Kurt', 'Rukiye Özdemir', 'Yusuf Özkan', 'Şule Güneş'
 ];
 
-// Bugünün tarihini al (YYYY-MM-DD formatında)
 function getDateString(daysOffset = 0) {
   const date = new Date();
   date.setDate(date.getDate() + daysOffset);
@@ -43,11 +39,9 @@ function getDateString(daysOffset = 0) {
 
 async function seed() {
   try {
-    // MongoDB'ye bağlan
     await mongoose.connect(MONGODB_URI);
     console.log('✅ MongoDB bağlantısı başarılı');
 
-    // Mevcut verileri temizle
     console.log('🗑️  Mevcut veriler temizleniyor...');
     await Promise.all([
       Customer.deleteMany({}),
@@ -59,14 +53,13 @@ async function seed() {
     ]);
     console.log('✅ Veriler temizlendi');
 
-    // 1. Users (Demo için)
     console.log('👤 Kullanıcılar oluşturuluyor...');
     const users = await User.create([
       {
         user_id: 'user-001',
         username: 'admin',
-        password: 'admin123', // Demo için düz metin, prod'da bcrypt kullanın
-        name: 'Admin User',
+        password: 'admin123',
+        name: 'Sistem Yöneticisi',
         role: 'ops_manager'
       },
       {
@@ -86,27 +79,25 @@ async function seed() {
     ]);
     console.log(`✅ ${users.length} kullanıcı oluşturuldu`);
 
-    // 2. Customers
     console.log('🏢 Müşteriler oluşturuluyor...');
     const customers = await Customer.create([
       {
         customer_id: uuidv4(),
-        name: 'Grand Tours Ltd.',
-        email: 'contact@grandtours.com',
+        name: 'Grand Turizm Ltd. Şti.',
+        email: 'iletisim@grandtours.com',
         phone: '+90 212 555 0101',
-        company: 'Grand Tours'
+        company: 'Grand Turizm'
       },
       {
         customer_id: uuidv4(),
-        name: 'Istanbul Adventures',
-        email: 'info@istanbuladventures.com',
+        name: 'İstanbul Maceraları A.Ş.',
+        email: 'bilgi@istanbuladventures.com',
         phone: '+90 212 555 0102',
-        company: 'Istanbul Adventures'
+        company: 'İstanbul Maceraları'
       }
     ]);
     console.log(`✅ ${customers.length} müşteri oluşturuldu`);
 
-    // 3. Locations
     console.log('📍 Lokasyonlar oluşturuluyor...');
     const locations = [];
     for (let i = 0; i < istanbulLocations.length; i++) {
@@ -121,7 +112,6 @@ async function seed() {
       });
       locations.push(location);
       
-      // Müşteriye lokasyon ekle
       await Customer.findOneAndUpdate(
         { customer_id: customers[i % customers.length].customer_id },
         { $push: { locations: location.location_id } }
@@ -129,7 +119,6 @@ async function seed() {
     }
     console.log(`✅ ${locations.length} lokasyon oluşturuldu`);
 
-    // 4. Vehicles
     console.log('🚗 Araçlar oluşturuluyor...');
     const vehicles = await Vehicle.create([
       {
@@ -164,7 +153,6 @@ async function seed() {
     ]);
     console.log(`✅ ${vehicles.length} araç oluşturuldu`);
 
-    // 5. Operations
     console.log('📋 Operasyonlar oluşturuluyor...');
     const today = getDateString(0);
     const tomorrow = getDateString(1);
@@ -173,7 +161,7 @@ async function seed() {
       {
         id: uuidv4(),
         code: `OPS-${Date.now()}-1`,
-        tour_name: 'Bosphorus & Palaces Tour',
+        tour_name: 'Boğaz ve Saraylar Turu',
         date: today,
         start_time: '10:00',
         vehicle_id: vehicles[0].vehicle_id,
@@ -191,7 +179,7 @@ async function seed() {
       {
         id: uuidv4(),
         code: `OPS-${Date.now()}-2`,
-        tour_name: 'Old City Walking Tour',
+        tour_name: 'Tarihi Yarımada Yürüyüş Turu',
         date: today,
         start_time: '14:00',
         vehicle_id: vehicles[1].vehicle_id,
@@ -209,7 +197,7 @@ async function seed() {
       {
         id: uuidv4(),
         code: `OPS-${Date.now()}-3`,
-        tour_name: 'Asian Side Discovery',
+        tour_name: 'Anadolu Yakası Keşfi',
         date: tomorrow,
         start_time: '09:30',
         vehicle_id: vehicles[1].vehicle_id,
@@ -223,7 +211,6 @@ async function seed() {
     ]);
     console.log(`✅ ${operations.length} operasyon oluşturuldu`);
 
-    // 6. Passengers
     console.log('👥 Yolcular oluşturuluyor...');
     let totalPax = 0;
     
@@ -247,8 +234,8 @@ async function seed() {
           },
           seat_no: `${String.fromCharCode(65 + Math.floor(i / 4))}${(i % 4) + 1}`,
           status: isCheckedIn ? 'checked_in' : 'waiting',
-          reservation_id: `RES-${uuidv4().substring(0, 8).toUpperCase()}`,
-          notes: i % 5 === 0 ? 'Vegetarian meal requested' : '',
+          reservation_id: `REZ-${uuidv4().substring(0, 8).toUpperCase()}`,
+          notes: i % 5 === 0 ? 'Vejetaryen yemek talebi' : '',
           ...(isCheckedIn && {
             checked_in_at: new Date(),
             checkin_method: 'manual',
@@ -262,7 +249,6 @@ async function seed() {
     }
     console.log(`✅ ${totalPax} yolcu oluşturuldu`);
 
-    // Özet
     console.log('\n🎉 Seed işlemi tamamlandı!\n');
     console.log('📊 Özet:');
     console.log(`   - Kullanıcılar: ${users.length}`);
@@ -287,5 +273,4 @@ async function seed() {
   }
 }
 
-// Scripti çalıştır
 seed();

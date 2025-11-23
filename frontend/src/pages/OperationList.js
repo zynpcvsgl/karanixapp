@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { Calendar, MapPin, Users, Clock, ChevronRight } from 'lucide-react';
+import { Calendar, Users, Clock, ChevronRight } from 'lucide-react';
 import { operationsAPI } from '../services/api';
 import { format, addDays } from 'date-fns';
 
@@ -20,6 +20,7 @@ const OperationList = () => {
       const today = new Date();
       const tomorrow = addDays(today, 1);
       
+      // Backend API tarih formatını (YYYY-MM-DD) bekliyor
       const date = filter === 'today' 
         ? format(today, 'yyyy-MM-dd') 
         : format(tomorrow, 'yyyy-MM-dd');
@@ -27,7 +28,7 @@ const OperationList = () => {
       const response = await operationsAPI.getOperations(date);
       setOperations(response.data || []);
     } catch (error) {
-      console.error('Error loading operations:', error);
+      console.error('Operasyonlar yüklenirken hata:', error);
       setOperations([]);
     } finally {
       setLoading(false);
@@ -54,15 +55,26 @@ const OperationList = () => {
     }
   };
 
+  // Durumları Türkçeye çeviren yardımcı fonksiyon
+  const getStatusText = (status) => {
+    const statuses = {
+      'active': 'AKTİF',
+      'planned': 'PLANLANDI',
+      'completed': 'TAMAMLANDI',
+      'cancelled': 'İPTAL'
+    };
+    return statuses[status] || status.toUpperCase();
+  };
+
   return (
     <div className="space-y-6" data-testid="operation-list-page">
-      {/* Header */}
+      {/* Başlık */}
       <div>
-        <h1 className="text-3xl font-bold text-gray-900">Operations</h1>
-        <p className="text-gray-600 mt-2">Manage and track all operations</p>
+        <h1 className="text-3xl font-bold text-gray-900">Operasyonlar</h1>
+        <p className="text-gray-600 mt-2">Tüm operasyonları yönetin ve takip edin</p>
       </div>
 
-      {/* Filter Tabs */}
+      {/* Filtre Butonları */}
       <div className="bg-white rounded-lg shadow p-2 inline-flex space-x-2" data-testid="operation-filter">
         <button
           onClick={() => handleFilterChange('today')}
@@ -73,7 +85,7 @@ const OperationList = () => {
           }`}
           data-testid="filter-today"
         >
-          Today
+          Bugün
         </button>
         <button
           onClick={() => handleFilterChange('tomorrow')}
@@ -84,21 +96,23 @@ const OperationList = () => {
           }`}
           data-testid="filter-tomorrow"
         >
-          Tomorrow
+          Yarın
         </button>
       </div>
 
-      {/* Operations List */}
+      {/* Operasyon Listesi */}
       {loading ? (
         <div className="bg-white rounded-lg shadow p-8 text-center" data-testid="loading-state">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="text-gray-600 mt-4">Loading operations...</p>
+          <p className="text-gray-600 mt-4">Operasyonlar yükleniyor...</p>
         </div>
       ) : operations.length === 0 ? (
         <div className="bg-white rounded-lg shadow p-8 text-center" data-testid="empty-state">
           <Calendar className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-          <h3 className="text-lg font-semibold text-gray-900 mb-2">No operations found</h3>
-          <p className="text-gray-600">There are no operations scheduled for {filter}.</p>
+          <h3 className="text-lg font-semibold text-gray-900 mb-2">Operasyon bulunamadı</h3>
+          <p className="text-gray-600">
+            {filter === 'today' ? 'Bugün' : 'Yarın'} için planlanmış operasyon yok.
+          </p>
         </div>
       ) : (
         <div className="grid gap-4" data-testid="operations-grid">
@@ -116,7 +130,7 @@ const OperationList = () => {
                       {operation.code}
                     </span>
                     <span className={`px-3 py-1 rounded-full text-xs font-semibold ${getStatusColor(operation.status)}`}>
-                      {operation.status.toUpperCase()}
+                      {getStatusText(operation.status)}
                     </span>
                   </div>
                   
@@ -138,11 +152,12 @@ const OperationList = () => {
                     <div className="flex items-center text-gray-600">
                       <Users className="h-4 w-4 mr-2" />
                       <span className="text-sm">
-                        {operation.checked_in_count} / {operation.total_pax} checked in
+                        {operation.checked_in_count} / {operation.total_pax} Check-in
                       </span>
                     </div>
                   </div>
                   
+                  {/* İlerleme Çubuğu */}
                   <div className="mt-4">
                     <div className="w-full bg-gray-200 rounded-full h-2">
                       <div

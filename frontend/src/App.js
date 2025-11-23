@@ -5,10 +5,11 @@ import Layout from "@/components/Layout";
 import Dashboard from "@/pages/Dashboard";
 import OperationList from "@/pages/OperationList";
 import OperationDetail from "@/pages/OperationDetail";
-import Login from "@/pages/Login"; // Yeni Login sayfası
+import Customers from "@/pages/Customers"; // Eklendi
+import Vehicles from "@/pages/Vehicles";   // Eklendi
+import Login from "@/pages/Login";
 import { initSocket } from "@/services/socket";
 
-// Basit rota koruması (Token kontrolü)
 const ProtectedRoute = ({ children }) => {
   const token = localStorage.getItem('token');
   if (!token) {
@@ -19,8 +20,6 @@ const ProtectedRoute = ({ children }) => {
 
 function App() {
   useEffect(() => {
-    // WebSocket bağlantısını sadece token varsa veya genel bağlantı olarak başlat
-    // Not: Gerçek uygulamada socket auth handshake'i de yapılabilir
     initSocket();
   }, []);
 
@@ -28,10 +27,8 @@ function App() {
     <div className="App">
       <BrowserRouter>
         <Routes>
-          {/* Login Rotası - Layout dışında tutuyoruz ki tam ekran olsun */}
           <Route path="/login" element={<Login />} />
 
-          {/* Korumalı Rotalar */}
           <Route path="/" element={
             <ProtectedRoute>
               <Layout>
@@ -56,10 +53,11 @@ function App() {
             </ProtectedRoute>
           } />
           
+          {/* GÜNCELLENEN KISIMLAR */}
           <Route path="/customers" element={
             <ProtectedRoute>
               <Layout>
-                <div className="text-center py-12"><h2 className="text-2xl font-bold text-gray-900">Customers Page - Coming Soon</h2></div>
+                <Customers />
               </Layout>
             </ProtectedRoute>
           } />
@@ -67,7 +65,7 @@ function App() {
           <Route path="/vehicles" element={
             <ProtectedRoute>
               <Layout>
-                <div className="text-center py-12"><h2 className="text-2xl font-bold text-gray-900">Vehicles Page - Coming Soon</h2></div>
+                <Vehicles />
               </Layout>
             </ProtectedRoute>
           } />

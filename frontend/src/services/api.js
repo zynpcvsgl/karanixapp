@@ -67,6 +67,12 @@ export const vehiclesAPI = {
   getVehicles: async () => {
     const response = await axiosInstance.get(`/vehicles`);
     return response.data;
+  },
+
+  // EKLENDİ: Yeni araç oluşturma
+  createVehicle: async (data) => {
+    const response = await axiosInstance.post('/vehicles', data);
+    return response.data;
   }
 };
 
@@ -83,9 +89,28 @@ export const passengersAPI = {
   }
 };
 
+// EKLENDİ: Müşteri Yönetimi API'leri
+export const customersAPI = {
+  getCustomers: async () => {
+    const response = await axiosInstance.get('/customers');
+    return response.data;
+  },
+  
+  createCustomer: async (data) => {
+    const response = await axiosInstance.post('/customers', data);
+    return response.data;
+  },
+  
+  deleteCustomer: async (id) => {
+    const response = await axiosInstance.delete(`/customers/${id}`);
+    return response.data;
+  }
+};
+
 export default {
   auth: authAPI,
   operations: operationsAPI,
   vehicles: vehiclesAPI,
-  passengers: passengersAPI
+  passengers: passengersAPI,
+  customers: customersAPI // Eklendi
 };

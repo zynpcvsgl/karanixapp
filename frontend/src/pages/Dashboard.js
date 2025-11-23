@@ -6,16 +6,16 @@ const Dashboard = () => {
   return (
     <div className="space-y-6" data-testid="dashboard-page">
       <div>
-        <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
-        <p className="text-gray-600 mt-2">Real-time operation tracking and monitoring</p>
+        <h1 className="text-3xl font-bold text-gray-900">Kontrol Paneli</h1>
+        <p className="text-gray-600 mt-2">Gerçek zamanlı operasyon takibi ve izleme</p>
       </div>
 
-      {/* Stats Cards */}
+      {/* İstatistik Kartları */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <div className="bg-white rounded-lg shadow p-6 border-l-4 border-blue-500">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-600">Active Operations</p>
+              <p className="text-sm font-medium text-gray-600">Aktif Operasyonlar</p>
               <p className="text-3xl font-bold text-gray-900 mt-2">2</p>
             </div>
             <div className="bg-blue-100 p-3 rounded-full">
@@ -27,7 +27,7 @@ const Dashboard = () => {
         <div className="bg-white rounded-lg shadow p-6 border-l-4 border-green-500">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-600">Total Passengers</p>
+              <p className="text-sm font-medium text-gray-600">Toplam Yolcu</p>
               <p className="text-3xl font-bold text-gray-900 mt-2">13</p>
             </div>
             <div className="bg-green-100 p-3 rounded-full">
@@ -39,7 +39,7 @@ const Dashboard = () => {
         <div className="bg-white rounded-lg shadow p-6 border-l-4 border-purple-500">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-600">Active Vehicles</p>
+              <p className="text-sm font-medium text-gray-600">Aktif Araçlar</p>
               <p className="text-3xl font-bold text-gray-900 mt-2">3</p>
             </div>
             <div className="bg-purple-100 p-3 rounded-full">
@@ -51,8 +51,8 @@ const Dashboard = () => {
         <div className="bg-white rounded-lg shadow p-6 border-l-4 border-orange-500">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-600">Check-in Rate</p>
-              <p className="text-3xl font-bold text-gray-900 mt-2">50%</p>
+              <p className="text-sm font-medium text-gray-600">Check-in Oranı</p>
+              <p className="text-3xl font-bold text-gray-900 mt-2">%50</p>
             </div>
             <div className="bg-orange-100 p-3 rounded-full">
               <TrendingUp className="h-6 w-6 text-orange-600" />
@@ -61,9 +61,9 @@ const Dashboard = () => {
         </div>
       </div>
 
-      {/* Quick Actions */}
+      {/* Hızlı İşlemler */}
       <div className="bg-white rounded-lg shadow p-6">
-        <h2 className="text-xl font-semibold text-gray-900 mb-4">Quick Actions</h2>
+        <h2 className="text-xl font-semibold text-gray-900 mb-4">Hızlı İşlemler</h2>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <Link
             to="/operations?filter=today"
@@ -72,8 +72,8 @@ const Dashboard = () => {
           >
             <Calendar className="h-8 w-8 text-blue-600 mr-3" />
             <div>
-              <h3 className="font-semibold text-gray-900">Today's Operations</h3>
-              <p className="text-sm text-gray-600">View all operations for today</p>
+              <h3 className="font-semibold text-gray-900">Bugünkü Operasyonlar</h3>
+              <p className="text-sm text-gray-600">Bugünün tüm operasyonlarını gör</p>
             </div>
           </Link>
 
@@ -84,8 +84,8 @@ const Dashboard = () => {
           >
             <Calendar className="h-8 w-8 text-green-600 mr-3" />
             <div>
-              <h3 className="font-semibold text-gray-900">Tomorrow's Operations</h3>
-              <p className="text-sm text-gray-600">View planned operations</p>
+              <h3 className="font-semibold text-gray-900">Yarınki Operasyonlar</h3>
+              <p className="text-sm text-gray-600">Planlanan operasyonları incele</p>
             </div>
           </Link>
 
@@ -96,8 +96,8 @@ const Dashboard = () => {
           >
             <MapPin className="h-8 w-8 text-purple-600 mr-3" />
             <div>
-              <h3 className="font-semibold text-gray-900">Live Tracking</h3>
-              <p className="text-sm text-gray-600">Track vehicles in real-time</p>
+              <h3 className="font-semibold text-gray-900">Canlı Takip</h3>
+              <p className="text-sm text-gray-600">Araçları haritada izle</p>
             </div>
           </Link>
         </div>

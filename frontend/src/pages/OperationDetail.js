@@ -1,9 +1,10 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Users, MapPin, Clock, Calendar, CheckCircle, Circle, AlertTriangle } from 'lucide-react';
+import { ArrowLeft, Users, MapPin, Clock, Calendar, CheckCircle } from 'lucide-react';
 import { operationsAPI, passengersAPI } from '../services/api';
 import { getSocket, joinOperationRoom } from '../services/socket';
 import GoogleMapComponent from '../components/GoogleMapComponent';
+import { v4 as uuidv4 } from 'uuid'; // Idempotency için eklendi
 
 const OperationDetail = () => {
   const { id } = useParams();
@@ -18,14 +19,14 @@ const OperationDetail = () => {
   useEffect(() => {
     loadOperationDetail();
     
-    // Setup WebSocket
+    // WebSocket Kurulumu
     const socket = getSocket();
     joinOperationRoom(id);
     
-    // Listen for vehicle position updates
+    // Araç konumu güncellemelerini dinle
     socket.on('vehicle_position', (data) => {
       if (data.operation_id === id) {
-        console.log('🚍 Vehicle position updated:', data);
+        console.log('🚍 Araç konumu güncellendi:', data);
         setVehiclePosition({
           lat: data.lat,
           lng: data.lng,
@@ -35,20 +36,19 @@ const OperationDetail = () => {
       }
     });
     
-    // Listen for passenger check-in events
+    // Yolcu check-in olaylarını dinle
     socket.on('pax_checked_in', (data) => {
       if (data.operation_id === id) {
-        console.log('✅ Passenger checked in:', data);
-        // Reload operation to get updated count
+        console.log('✅ Yolcu check-in yaptı:', data);
+        // Sayıları güncellemek için operasyonu yeniden yükle
         loadOperationDetail();
       }
     });
     
-    // Listen for alerts
+    // Alarmları dinle
     socket.on('check_in_alert', (data) => {
       if (data.operation_id === id) {
-        console.warn('🚨 Check-in alert:', data);
-        // Show alert notification (you can implement toast here)
+        console.warn('🚨 Check-in uyarısı:', data);
         alert(data.message);
       }
     });
@@ -70,7 +70,7 @@ const OperationDetail = () => {
       setPassengers(data.passengers || []);
       setVehicle(data.vehicle);
       
-      // Set initial vehicle position
+      // Başlangıç araç konumunu ayarla
       if (data.vehicle && data.vehicle.last_ping) {
         setVehiclePosition({
           lat: data.vehicle.last_ping.lat,
@@ -80,7 +80,7 @@ const OperationDetail = () => {
         });
       }
     } catch (error) {
-      console.error('Error loading operation:', error);
+      console.error('Operasyon yüklenirken hata:', error);
     } finally {
       setLoading(false);
     }
@@ -89,14 +89,16 @@ const OperationDetail = () => {
   const handleCheckin = async (paxId) => {
     setCheckingIn(paxId);
     try {
+      // FIX: Idempotency için event_id (UUID) eklendi
       await passengersAPI.checkin(paxId, {
         method: 'manual',
-        gps: vehiclePosition || { lat: 0, lng: 0 }
+        gps: vehiclePosition || { lat: 0, lng: 0 },
+        event_id: uuidv4() 
       });
-      // The WebSocket event will trigger a reload
+      // WebSocket event'i sayfayı yenileyecektir
     } catch (error) {
-      console.error('Error checking in passenger:', error);
-      alert('Failed to check in passenger');
+      console.error('Yolcu check-in hatası:', error);
+      alert('Yolcu check-in işlemi başarısız oldu');
     } finally {
       setCheckingIn(null);
     }
@@ -113,12 +115,12 @@ const OperationDetail = () => {
   if (!operation) {
     return (
       <div className="text-center py-12">
-        <h2 className="text-2xl font-bold text-gray-900">Operation not found</h2>
+        <h2 className="text-2xl font-bold text-gray-900">Operasyon bulunamadı</h2>
         <button
           onClick={() => navigate('/operations')}
           className="mt-4 text-blue-600 hover:text-blue-700"
         >
-          Back to Operations
+          Operasyonlara Dön
         </button>
       </div>
     );
@@ -139,9 +141,20 @@ const OperationDetail = () => {
     }
   };
 
+  // Türkçe durum metinleri
+  const getStatusText = (status) => {
+    const statuses = {
+      'active': 'AKTİF',
+      'planned': 'PLANLANDI',
+      'completed': 'TAMAMLANDI',
+      'cancelled': 'İPTAL'
+    };
+    return statuses[status] || status.toUpperCase();
+  };
+
   return (
     <div className="space-y-6" data-testid="operation-detail-page">
-      {/* Header */}
+      {/* Üst Başlık */}
       <div className="flex items-center space-x-4">
         <button
           onClick={() => navigate('/operations')}
@@ -156,19 +169,19 @@ const OperationDetail = () => {
               {operation.code}
             </span>
             <span className={`px-3 py-1 rounded-full text-xs font-semibold ${getStatusColor(operation.status)}`}>
-              {operation.status.toUpperCase()}
+              {getStatusText(operation.status)}
             </span>
           </div>
           <h1 className="text-3xl font-bold text-gray-900">{operation.tour_name}</h1>
         </div>
       </div>
 
-      {/* Operation Info */}
+      {/* Operasyon Bilgileri */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <div className="bg-white rounded-lg shadow p-4">
           <div className="flex items-center text-gray-600 mb-2">
             <Calendar className="h-5 w-5 mr-2" />
-            <span className="text-sm font-medium">Date</span>
+            <span className="text-sm font-medium">Tarih</span>
           </div>
           <p className="text-lg font-semibold text-gray-900">{operation.date}</p>
         </div>
@@ -176,7 +189,7 @@ const OperationDetail = () => {
         <div className="bg-white rounded-lg shadow p-4">
           <div className="flex items-center text-gray-600 mb-2">
             <Clock className="h-5 w-5 mr-2" />
-            <span className="text-sm font-medium">Start Time</span>
+            <span className="text-sm font-medium">Kalkış Saati</span>
           </div>
           <p className="text-lg font-semibold text-gray-900">{operation.start_time}</p>
         </div>
@@ -184,7 +197,7 @@ const OperationDetail = () => {
         <div className="bg-white rounded-lg shadow p-4">
           <div className="flex items-center text-gray-600 mb-2">
             <Users className="h-5 w-5 mr-2" />
-            <span className="text-sm font-medium">Passengers</span>
+            <span className="text-sm font-medium">Yolcular</span>
           </div>
           <p className="text-lg font-semibold text-gray-900">
             {operation.checked_in_count} / {operation.total_pax}
@@ -194,20 +207,20 @@ const OperationDetail = () => {
         <div className="bg-white rounded-lg shadow p-4">
           <div className="flex items-center text-gray-600 mb-2">
             <MapPin className="h-5 w-5 mr-2" />
-            <span className="text-sm font-medium">Vehicle</span>
+            <span className="text-sm font-medium">Araç</span>
           </div>
           <p className="text-lg font-semibold text-gray-900">
-            {vehicle ? vehicle.plate_number : 'N/A'}
+            {vehicle ? vehicle.plate_number : 'Atanmadı'}
           </p>
         </div>
       </div>
 
-      {/* Map and Manifest */}
+      {/* Harita ve Manifesto */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Map */}
+        {/* Harita */}
         <div className="lg:col-span-2 bg-white rounded-lg shadow overflow-hidden">
           <div className="p-4 border-b border-gray-200">
-            <h2 className="text-xl font-semibold text-gray-900">Live Tracking</h2>
+            <h2 className="text-xl font-semibold text-gray-900">Canlı Takip</h2>
           </div>
           <div className="h-[600px]" data-testid="operation-map">
             <GoogleMapComponent
@@ -218,16 +231,16 @@ const OperationDetail = () => {
           </div>
         </div>
 
-        {/* Passenger Manifest */}
+        {/* Yolcu Listesi */}
         <div className="bg-white rounded-lg shadow overflow-hidden">
           <div className="p-4 border-b border-gray-200">
-            <h2 className="text-xl font-semibold text-gray-900">Passenger Manifest</h2>
+            <h2 className="text-xl font-semibold text-gray-900">Yolcu Listesi</h2>
           </div>
           <div className="overflow-y-auto" style={{ maxHeight: '600px' }} data-testid="passenger-manifest">
             {passengers.length === 0 ? (
               <div className="p-6 text-center text-gray-500">
                 <Users className="h-12 w-12 mx-auto mb-2 text-gray-400" />
-                <p>No passengers</p>
+                <p>Yolcu bulunmuyor</p>
               </div>
             ) : (
               <div className="divide-y divide-gray-200">
@@ -256,22 +269,22 @@ const OperationDetail = () => {
                           className="flex-shrink-0 px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white text-sm rounded-md disabled:opacity-50 disabled:cursor-not-allowed"
                           data-testid={`checkin-button-${pax.seat_no}`}
                         >
-                          {checkingIn === pax.pax_id ? 'Checking...' : 'Check-in'}
+                          {checkingIn === pax.pax_id ? 'İşleniyor...' : 'Check-in'}
                         </button>
                       )}
                     </div>
                     <div className="flex items-center space-x-2 mt-2">
                       {pax.status === 'checked_in' ? (
                         <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full font-medium">
-                          Checked In
+                          Bindi
                         </span>
                       ) : pax.status === 'no_show' ? (
                         <span className="text-xs bg-red-100 text-red-800 px-2 py-1 rounded-full font-medium">
-                          No Show
+                          Gelmedi
                         </span>
                       ) : (
                         <span className="text-xs bg-yellow-100 text-yellow-800 px-2 py-1 rounded-full font-medium">
-                          Waiting
+                          Bekliyor
                         </span>
                       )}
                     </div>
