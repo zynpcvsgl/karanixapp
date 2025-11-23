@@ -2,17 +2,17 @@ const express = require('express');
 const http = require('http');
 const { Server } = require('socket.io');
 const cors = require('cors');
-const connectDB = require('./config/db');
-const { PORT } = require('./config/env');
+const connectDB = require('./src/config/db');
+const { PORT } = require('./src/config/env');
 const { initWebSocket } = require('./services/websocket');
-const auth = require('./middleware/auth');
+const auth = require('./src/middleware/auth');
 
 // Routes
-const operationsRouter = require('./routes/operations');
-const paxRouter = require('./routes/pax');
-const vehiclesRouter = require('./routes/vehicles');
-const locationsRouter = require('./routes/locations');
-const customersRouter = require('./routes/customers');
+const operationsRouter = require('./src/routes/operations');
+const paxRouter = require('./src/routes/pax');
+const vehiclesRouter = require('./src/routes/vehicles');
+const locationsRouter = require('./src/routes/locations');
+const customersRouter = require('./src/routes/customers');
 
 const app = express();
 const server = http.createServer(app);
